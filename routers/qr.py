@@ -1,73 +1,126 @@
-import os, uuid
-from datetime import datetime
+import os
+import uuid
+from datetime import datetime, timezone
 from io import BytesIO
+from pathlib import Path
+from typing import List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, AnyHttpUrl
+from pydantic import AnyHttpUrl, BaseModel
 from sqlmodel import Session, select
 
-from db import engine
-from models import QRItem
+from core.security import get_current_user
+from db import get_session
+from models import QRItem, User
 
 import qrcode
 import qrcode.image.svg as svg
 
 router = APIRouter()
-SVG_DIR = "generated_svgs"
-os.makedirs(SVG_DIR, exist_ok=True)
+SVG_DIR = Path("generated_svgs")
+SVG_DIR.mkdir(parents=True, exist_ok=True)
+
 
 class QRCreate(BaseModel):
     title: str
     url: AnyHttpUrl
 
-@router.post("", response_model=QRItem)
-def create_qr(payload: QRCreate):
-    # generate SVG
+
+def _ensure_owner(session: Session, user: User, item_id: int) -> QRItem:
+    item = session.exec(
+        select(QRItem).where(QRItem.id == item_id, QRItem.user_id == user.id)
+    ).first()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="QR item not found")
+    return item
+
+
+@router.post("", response_model=QRItem, status_code=status.HTTP_201_CREATED)
+def create_qr(
+    payload: QRCreate,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> QRItem:
     factory = svg.SvgImage
     img = qrcode.make(str(payload.url), image_factory=factory)
     buf = BytesIO()
-    img.save(buf); buf.seek(0)
+    img.save(buf)
+    buf.seek(0)
 
-    # save to disk
     filename = f"{uuid.uuid4()}.svg"
-    path = os.path.join(SVG_DIR, filename)
-    with open(path, "wb") as f:
+    path = SVG_DIR / filename
+    with path.open("wb") as f:
         f.write(buf.read())
 
-    # persist row
+    now = datetime.now(timezone.utc)
     item = QRItem(
-        title=payload.title.strip(),
+        user_id=current_user.id,
+        title=payload.title.strip() or "Untitled QR",
         url=str(payload.url),
-        svg_path=path,
-        created_at=datetime.utcnow()
+        svg_path=str(path),
+        created_at=now,
+        updated_at=now,
     )
-    with Session(engine) as s:
-        s.add(item); s.commit(); s.refresh(item)
-        return item
+    session.add(item)
+    session.commit()
+    session.refresh(item)
+    return item
 
-@router.get("", response_model=list[QRItem])
-def list_qr():
-    with Session(engine) as s:
-        return s.exec(select(QRItem).order_by(QRItem.created_at.desc())).all()
+
+@router.get("", response_model=List[QRItem])
+def list_qr(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> List[QRItem]:
+    return session.exec(
+        select(QRItem)
+        .where(QRItem.user_id == current_user.id)
+        .order_by(QRItem.created_at.desc())
+    ).all()
+
+
+@router.get("/history", response_model=List[QRItem])
+def history(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> List[QRItem]:
+    return list_qr(session=session, current_user=current_user)
+
 
 @router.delete("/{item_id}")
-def delete_qr(item_id: int):
-    with Session(engine) as s:
-        item = s.get(QRItem, item_id)
-        if not item:
-            raise HTTPException(404, "Not found")
-        try:
-            if os.path.exists(item.svg_path):
-                os.remove(item.svg_path)
-        finally:
-            s.delete(item); s.commit()
-        return {"ok": True}
+def delete_qr(
+    item_id: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    item = _ensure_owner(session, current_user, item_id)
+    try:
+        if item.svg_path and Path(item.svg_path).exists():
+            os.remove(item.svg_path)
+        if item.png_path and Path(item.png_path).exists():
+            os.remove(item.png_path)
+    finally:
+        session.delete(item)
+        session.commit()
+    return {"ok": True}
+
 
 @router.get("/{item_id}/download")
-def download_svg(item_id: int):
-    with Session(engine) as s:
-        item = s.get(QRItem, item_id)
-        if not item:
-            raise HTTPException(404, "Not found")
-        return FileResponse(item.svg_path, media_type="image/svg+xml", filename="qr.svg")
+def download_qr(
+    item_id: int,
+    format: str = Query(default="svg", pattern="^(svg|png)$"),
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    item = _ensure_owner(session, current_user, item_id)
+    if format == "svg":
+        if not item.svg_path or not Path(item.svg_path).exists():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="SVG not available")
+        return FileResponse(item.svg_path, media_type="image/svg+xml", filename=f"qr-{item.id}.svg")
+
+    if not item.png_path:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="PNG export not available yet")
+    if not Path(item.png_path).exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PNG not available")
+    return FileResponse(item.png_path, media_type="image/png", filename=f"qr-{item.id}.png")

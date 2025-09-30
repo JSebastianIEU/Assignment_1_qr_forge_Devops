@@ -1,66 +1,107 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>QR Forge</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Mulish font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="/static/styles.css" />
+  <script defer src="/static/app.js"></script>
 </head>
 <body>
-  <h1>QR Forge</h1>
+  <!-- Background shapes -->
+  <div class="bg-shape s1"></div>
+  <div class="bg-shape s2"></div>
+  <div class="bg-shape s3"></div>
 
-  <form id="form">
-    <input name="title" placeholder="Title" required />
-    <input name="url" placeholder="https://example.com" required />
-    <button type="submit">Create QR</button>
-  </form>
+  <div class="wrap">
+    <!-- LEFT TOOLBAR -->
+    <aside class="toolbar card">
+      <div class="logo">Q</div>
+      <nav>
+        <button id="navProfile" class="tool" title="Profile">👤</button>
+        <button id="navGenerator" class="tool active" title="Generator">⚙️</button>
+        <button id="navHistory" class="tool" title="History">🕘</button>
+      </nav>
+    </aside>
 
-  <div class="actions">
-    <button id="export">Export CSV</button>
+    <!-- MAIN PANEL -->
+    <main class="panel card">
+      <!-- LEFT: INPUTS -->
+      <section class="left">
+        <h1 class="title">Enter your text</h1>
+        <p class="subtitle">Your QR code will be generated automatically.</p>
+
+        <!-- collapsed after first generation -->
+        <form id="qr-form" class="input-card">
+          <input id="url" name="url" type="url" placeholder="https://example.com" required />
+          <div class="row">
+            <input id="title" name="title" type="text" placeholder="QR title (optional)" />
+            <button type="submit" class="btn primary">Generate</button>
+          </div>
+        </form>
+
+        <!-- “restore” button appears in customize mode -->
+        <button id="editInputs" class="btn ghost small hidden" type="button">Edit link & title</button>
+      </section>
+
+      <!-- RIGHT: PREVIEW + CUSTOMIZER -->
+      <section class="right">
+        <div class="preview card">
+          <div class="qr-box" id="qrBox">
+            <img id="qrPreview" alt="QR preview" />
+            <div id="qrEmpty" class="qr-empty">Your QR preview will appear here</div>
+            <div id="qrOverlay" class="qr-overlay hidden">QR</div>
+          </div>
+
+          <div class="controls" id="controls">
+            <div class="control">
+              <label>Foreground color</label>
+              <input id="fgColor" type="color" value="#0a0a0a" />
+            </div>
+
+            <div class="control">
+              <label>Background color</label>
+              <input id="bgColor" type="color" value="#0b2a6a" />
+            </div>
+
+            <div class="control">
+              <label>Border radius</label>
+              <input id="radiusRange" type="range" min="0" max="28" value="20" />
+            </div>
+
+            <div class="control">
+              <label>Center text / icon</label>
+              <div class="seg-2">
+                <input id="overlayText" placeholder="e.g. QF, 🔨" />
+                <button id="toggleOverlay" class="btn">Toggle</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="download-row">
+            <a id="dlSvg" class="btn" href="#" download>⬇︎ SVG</a>
+            <button id="dlPng" class="btn accent" type="button">⬇︎ PNG</button>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
 
-  <table id="table">
-    <thead><tr><th>Title</th><th>URL</th><th>Created</th><th>Actions</th></tr></thead>
-    <tbody></tbody>
-  </table>
+  <!-- HISTORY DRAWER -->
+  <aside id="historyDrawer" class="history-drawer">
+    <div class="drawer-head">
+      <h3>Recent QRs</h3>
+      <button id="closeHistory" class="btn ghost small">Close</button>
+    </div>
+    <div id="historyList" class="history-list"></div>
+  </aside>
 
-<script>
-async function refresh(){
-  const res = await fetch('/api/qr');
-  const data = await res.json();
-  const tbody = document.querySelector('#table tbody');
-  tbody.innerHTML = '';
-  data.forEach(item => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${item.title}</td>
-      <td><a href="${item.url}" target="_blank">${item.url}</a></td>
-      <td>${new Date(item.created_at).toLocaleString()}</td>
-      <td>
-        <a href="/api/qr/${item.id}/download">Download SVG</a>
-        <button data-id="${item.id}" class="del">Delete</button>
-      </td>`;
-    tbody.appendChild(tr);
-  });
-  document.querySelectorAll('.del').forEach(b=>{
-    b.onclick = async () => {
-      await fetch('/api/qr/'+b.dataset.id, {method:'DELETE'});
-      refresh();
-    }
-  });
-}
-document.getElementById('form').onsubmit = async (e)=>{
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  await fetch('/api/qr', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ title: fd.get('title'), url: fd.get('url') })
-  });
-  e.target.reset();
-  refresh();
-};
-document.getElementById('export').onclick = ()=>{ window.location='/api/export/csv' }
-refresh();
-</script>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
