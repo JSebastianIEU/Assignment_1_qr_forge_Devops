@@ -1,30 +1,22 @@
-import os
-import uuid
 from datetime import datetime, timezone
-from io import BytesIO
 from pathlib import Path
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
-from pydantic import AnyHttpUrl, BaseModel
 from sqlmodel import Session, select
 
 from core.security import get_current_user
 from db import get_session
 from models import QRItem, User
-
-import qrcode
-import qrcode.image.svg as svg
+from schemas import QRCreate
+from services.qr import QRConfig, generate_qr_assets
 
 router = APIRouter()
 SVG_DIR = Path("generated_svgs")
+PNG_DIR = Path("generated_pngs")
 SVG_DIR.mkdir(parents=True, exist_ok=True)
-
-
-class QRCreate(BaseModel):
-    title: str
-    url: AnyHttpUrl
+PNG_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _ensure_owner(session: Session, user: User, item_id: int) -> QRItem:
@@ -42,23 +34,30 @@ def create_qr(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ) -> QRItem:
-    factory = svg.SvgImage
-    img = qrcode.make(str(payload.url), image_factory=factory)
-    buf = BytesIO()
-    img.save(buf)
-    buf.seek(0)
-
-    filename = f"{uuid.uuid4()}.svg"
-    path = SVG_DIR / filename
-    with path.open("wb") as f:
-        f.write(buf.read())
-
     now = datetime.now(timezone.utc)
+    qr_config = QRConfig(
+        url=str(payload.url),
+        foreground_color=payload.foreground_color,
+        background_color=payload.background_color,
+        size=payload.size,
+        padding=payload.padding,
+        border_radius=payload.border_radius,
+        overlay_text=payload.overlay_text,
+    )
+    assets = generate_qr_assets(qr_config, svg_dir=SVG_DIR, png_dir=PNG_DIR)
+
     item = QRItem(
         user_id=current_user.id,
         title=payload.title.strip() or "Untitled QR",
         url=str(payload.url),
-        svg_path=str(path),
+        foreground_color=payload.foreground_color,
+        background_color=payload.background_color,
+        size=payload.size,
+        padding=payload.padding,
+        border_radius=payload.border_radius,
+        overlay_text=payload.overlay_text,
+        svg_path=str(assets.svg_path),
+        png_path=str(assets.png_path),
         created_at=now,
         updated_at=now,
     )
@@ -97,9 +96,9 @@ def delete_qr(
     item = _ensure_owner(session, current_user, item_id)
     try:
         if item.svg_path and Path(item.svg_path).exists():
-            os.remove(item.svg_path)
+            Path(item.svg_path).unlink()
         if item.png_path and Path(item.png_path).exists():
-            os.remove(item.png_path)
+            Path(item.png_path).unlink()
     finally:
         session.delete(item)
         session.commit()
