@@ -1,9 +1,0 @@
-body { font-family: system-ui, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 16px; }
-h1 { margin-bottom: 16px; }
-form { display: flex; gap: 8px; margin-bottom: 12px; }
-input { flex: 1; padding: 8px; }
-button { padding: 8px 12px; cursor: pointer; }
-.actions { margin: 8px 0 12px; }
-table { width: 100%; border-collapse: collapse; }
-th, td { border-top: 1px solid #ddd; padding: 8px; text-align: left; }
-a { text-decoration: none; }
