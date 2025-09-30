@@ -39,9 +39,12 @@ def client(tmp_path, monkeypatch):
 
     from routers import qr
 
-    storage_dir = tmp_path / "qr"
-    storage_dir.mkdir(parents=True, exist_ok=True)
-    monkeypatch.setattr(qr, "SVG_DIR", storage_dir, raising=False)
+    svg_dir = tmp_path / "svg"
+    png_dir = tmp_path / "png"
+    svg_dir.mkdir(parents=True, exist_ok=True)
+    png_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(qr, "SVG_DIR", svg_dir, raising=False)
+    monkeypatch.setattr(qr, "PNG_DIR", png_dir, raising=False)
 
     return TestClient(app)
 
@@ -87,19 +90,40 @@ def test_qr_lifecycle_for_user(client: TestClient) -> None:
 
     create_resp = client.post(
         "/api/qr",
-        json={"title": "My QR", "url": "https://example.com"},
+        json={
+            "title": "My QR",
+            "url": "https://example.com",
+            "foreground_color": "#123456",
+            "background_color": "#ffffff",
+            "size": 320,
+            "padding": 12,
+            "border_radius": 24,
+            "overlay_text": "QF",
+        },
         headers=headers,
     )
     assert create_resp.status_code == 201, create_resp.text
     created = create_resp.json()
     assert created["title"] == "My QR"
     assert created["user_id"]
+    assert created["foreground_color"] == "#123456"
+    assert created["border_radius"] == 24
+    assert created["png_path"]
+    assert Path(created["png_path"]).exists()
 
     list_resp = client.get("/api/qr", headers=headers)
     assert list_resp.status_code == 200
     items = list_resp.json()
     assert len(items) == 1
     assert items[0]["id"] == created["id"]
+
+    download_png = client.get(
+        f"/api/qr/{created['id']}/download",
+        params={"format": "png"},
+        headers=headers,
+    )
+    assert download_png.status_code == 200
+    assert download_png.headers["content-type"] == "image/png"
 
     delete_resp = client.delete(f"/api/qr/{created['id']}", headers=headers)
     assert delete_resp.status_code == 200
