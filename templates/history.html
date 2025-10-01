@@ -1,0 +1,30 @@
+﻿{% extends "base.html" %}
+{% block title %}History · QR Forge{% endblock %}
+
+{% block content %}
+<section class="history-panel">
+  <div id="historyGuard" class="auth-gate">
+    <h2>Sign in to view your QR history</h2>
+    <p>Login to retrieve saved QR codes, download exports, and manage your library.</p>
+    <div class="gate-actions">
+      <a class="btn primary" href="{{ url_for('login_page') }}">Login</a>
+      <a class="btn ghost" href="{{ url_for('signup_page') }}">Create account</a>
+    </div>
+  </div>
+
+  <div id="historyContent" class="history-content" data-history-auth>
+    <header class="history-header">
+      <h1 class="title">QR history</h1>
+      <p class="subtitle">All of your generated QR codes, ready to download again or remove.</p>
+    </header>
+
+    <div class="history-actions">
+      <button id="refreshHistory" class="btn ghost" type="button">Refresh</button>
+      <button id="exportCsv" class="btn" type="button">Export CSV</button>
+    </div>
+
+    <div id="historyEmpty" class="history-empty hidden">No QR codes yet. Generate your first one from the generator tab.</div>
+    <div id="historyGrid" class="history-grid"></div>
+  </div>
+</section>
+{% endblock %}

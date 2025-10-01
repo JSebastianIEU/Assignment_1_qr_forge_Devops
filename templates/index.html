@@ -1,107 +1,89 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>QR Forge</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+﻿{% extends "base.html" %}
+{% block title %}Generator · QR Forge{% endblock %}
 
-  <!-- Mulish font -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="/static/styles.css" />
-  <script defer src="/static/app.js"></script>
-</head>
-<body>
-  <!-- Background shapes -->
-  <div class="bg-shape s1"></div>
-  <div class="bg-shape s2"></div>
-  <div class="bg-shape s3"></div>
-
-  <div class="wrap">
-    <!-- LEFT TOOLBAR -->
-    <aside class="toolbar card">
-      <div class="logo">Q</div>
-      <nav>
-        <button id="navProfile" class="tool" title="Profile">👤</button>
-        <button id="navGenerator" class="tool active" title="Generator">⚙️</button>
-        <button id="navHistory" class="tool" title="History">🕘</button>
-      </nav>
-    </aside>
-
-    <!-- MAIN PANEL -->
-    <main class="panel card">
-      <!-- LEFT: INPUTS -->
-      <section class="left">
-        <h1 class="title">Enter your text</h1>
-        <p class="subtitle">Your QR code will be generated automatically.</p>
-
-        <!-- collapsed after first generation -->
-        <form id="qr-form" class="input-card">
-          <input id="url" name="url" type="url" placeholder="https://example.com" required />
-          <div class="row">
-            <input id="title" name="title" type="text" placeholder="QR title (optional)" />
-            <button type="submit" class="btn primary">Generate</button>
-          </div>
-        </form>
-
-        <!-- “restore” button appears in customize mode -->
-        <button id="editInputs" class="btn ghost small hidden" type="button">Edit link & title</button>
-      </section>
-
-      <!-- RIGHT: PREVIEW + CUSTOMIZER -->
-      <section class="right">
-        <div class="preview card">
-          <div class="qr-box" id="qrBox">
-            <img id="qrPreview" alt="QR preview" />
-            <div id="qrEmpty" class="qr-empty">Your QR preview will appear here</div>
-            <div id="qrOverlay" class="qr-overlay hidden">QR</div>
-          </div>
-
-          <div class="controls" id="controls">
-            <div class="control">
-              <label>Foreground color</label>
-              <input id="fgColor" type="color" value="#0a0a0a" />
-            </div>
-
-            <div class="control">
-              <label>Background color</label>
-              <input id="bgColor" type="color" value="#0b2a6a" />
-            </div>
-
-            <div class="control">
-              <label>Border radius</label>
-              <input id="radiusRange" type="range" min="0" max="28" value="20" />
-            </div>
-
-            <div class="control">
-              <label>Center text / icon</label>
-              <div class="seg-2">
-                <input id="overlayText" placeholder="e.g. QF, 🔨" />
-                <button id="toggleOverlay" class="btn">Toggle</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="download-row">
-            <a id="dlSvg" class="btn" href="#" download>⬇︎ SVG</a>
-            <button id="dlPng" class="btn accent" type="button">⬇︎ PNG</button>
-          </div>
-        </div>
-      </section>
-    </main>
+{% block content %}
+<section class="left">
+  <div id="generatorGuard" class="auth-gate">
+    <h2>Sign in to generate QR codes</h2>
+    <p>Create an account to store your designs, customize styles, and download SVG or PNG exports.</p>
+    <div class="gate-actions">
+      <a class="btn primary" href="{{ url_for('login_page') }}">Login</a>
+      <a class="btn ghost" href="{{ url_for('signup_page') }}">Create account</a>
+    </div>
   </div>
 
-  <!-- HISTORY DRAWER -->
-  <aside id="historyDrawer" class="history-drawer">
-    <div class="drawer-head">
-      <h3>Recent QRs</h3>
-      <button id="closeHistory" class="btn ghost small">Close</button>
-    </div>
-    <div id="historyList" class="history-list"></div>
-  </aside>
+  <div id="generatorFormWrap" data-generator-auth>
+    <h1 class="title">Enter your text</h1>
+    <p class="subtitle">Your QR code will be generated automatically.</p>
 
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-</body>
-</html>
+    <form id="qr-form" class="input-card">
+      <input id="url" name="url" type="url" placeholder="https://example.com" required />
+      <div class="row">
+        <input id="title" name="title" type="text" placeholder="QR title (optional)" />
+        <button type="submit" class="btn primary">Generate</button>
+      </div>
+    </form>
+
+    <button id="editInputs" class="btn ghost small hidden" type="button">Edit link &amp; title</button>
+  </div>
+</section>
+
+<section class="right" data-generator-auth>
+  <div class="preview card">
+    <div class="qr-box" id="qrBox">
+      <img id="qrPreview" alt="QR preview" />
+      <div id="qrEmpty" class="qr-empty">Your QR preview will appear here</div>
+      <div id="qrOverlay" class="qr-overlay hidden">QR</div>
+    </div>
+
+    <div class="controls" id="controls">
+      <div class="control">
+        <label>Foreground color</label>
+        <input id="fgColor" type="color" value="#0a0a0a" />
+      </div>
+
+      <div class="control">
+        <label>Background color</label>
+        <input id="bgColor" type="color" value="#ffffff" />
+      </div>
+
+      <div class="control">
+        <label>Size <span id="sizeValue" class="control-value">512 px</span></label>
+        <input id="sizeRange" type="range" min="128" max="1024" step="64" value="512" />
+      </div>
+
+      <div class="control">
+        <label>Padding <span id="paddingValue" class="control-value">16 px</span></label>
+        <input id="paddingRange" type="range" min="0" max="80" step="4" value="16" />
+      </div>
+
+      <div class="control">
+        <label>Border radius</label>
+        <input id="radiusRange" type="range" min="0" max="60" value="20" />
+      </div>
+
+      <div class="control">
+        <label>Center text / icon</label>
+        <div class="seg-2">
+          <input id="overlayText" placeholder="e.g. QF" />
+          <button id="toggleOverlay" class="btn" type="button">Toggle</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="download-row">
+      <button id="dlSvg" class="btn" type="button">Download SVG</button>
+      <button id="dlPng" class="btn accent" type="button">Download PNG</button>
+      <button id="openHistory" class="btn ghost" type="button">History</button>
+    </div>
+  </div>
+</section>
+
+<aside id="historyDrawer" class="history-drawer" data-generator-auth>
+  <div class="drawer-head">
+    <h3>Recent QRs</h3>
+    <button id="closeHistory" class="btn ghost small" type="button">Close</button>
+  </div>
+  <div id="historyList" class="history-list"></div>
+</aside>
+{% endblock %}

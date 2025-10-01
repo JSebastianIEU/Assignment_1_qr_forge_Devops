@@ -1,0 +1,56 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{% block title %}QR Forge{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/static/styles.css" />
+  {% block head_scripts %}{% endblock %}
+</head>
+<body class="page-{{ active_page|default('home') }}">
+  <div class="bg-shape s1"></div>
+  <div class="bg-shape s2"></div>
+  <div class="bg-shape s3"></div>
+
+  <div class="wrap">
+    <aside class="toolbar card">
+      <div class="logo">QF</div>
+      <nav class="toolbar-nav">
+        <a id="navHome" href="{{ url_for('home') }}" class="tool{% if active_page == 'home' %} active{% endif %}" title="Home">
+          <img src="/assets/icons/home.svg" alt="" class="tool-icon" />
+          <span class="tool-label">Home</span>
+        </a>
+        <a id="navGenerator" href="{{ url_for('generator_page') }}" class="tool{% if active_page == 'generator' %} active{% endif %}" title="Generator">
+          <img src="/assets/icons/generator.svg" alt="" class="tool-icon" />
+          <span class="tool-label">Generator</span>
+        </a>
+        <a id="navHistory" href="{{ url_for('history_page') }}" class="tool{% if active_page == 'history' %} active{% endif %}" title="History">
+          <img src="/assets/icons/history.svg" alt="" class="tool-icon" />
+          <span class="tool-label">History</span>
+        </a>
+        <a id="navProfile" href="{{ url_for('profile_page') }}" class="tool{% if active_page == 'profile' %} active{% endif %}" title="Profile" data-requires-auth>
+          <img src="/assets/icons/profile.svg" alt="" class="tool-icon" />
+          <span class="tool-label">Profile</span>
+        </a>
+        <a id="navLogin" href="{{ url_for('login_page') }}" class="tool{% if active_page == 'login' %} active{% endif %}" title="Login" data-hide-when-authed>
+          <img src="/assets/icons/login.svg" alt="" class="tool-icon" />
+          <span class="tool-label">Login</span>
+        </a>
+      </nav>
+    </aside>
+
+    <main class="panel card" id="main-panel">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  {% block body_scripts %}{% endblock %}
+  <script defer src="/static/app.js"></script>
+</body>
+</html>

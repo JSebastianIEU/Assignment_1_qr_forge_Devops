@@ -21,8 +21,10 @@ test_engine = create_engine(
 )
 
 
+from typing import Generator
+
 @pytest.fixture(autouse=True)
-def _prepare_database() -> None:
+def _prepare_database() -> Generator[None, None, None]:
     SQLModel.metadata.drop_all(test_engine)
     SQLModel.metadata.create_all(test_engine)
     yield
@@ -31,7 +33,9 @@ def _prepare_database() -> None:
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
-    def override_get_session() -> Session:
+    from typing import Generator
+
+    def override_get_session() -> Generator[Session, None, None]:
         with Session(test_engine) as session:
             yield session
 
