@@ -1,5 +1,5 @@
-﻿from pathlib import Path
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
@@ -9,15 +9,25 @@ from db import get_session
 from models import QRItem, User
 from schemas import UserRead, UserUpdate
 
-router = APIRouter(prefix="/api/user", tags=["user"])
+router = APIRouter(prefix="/api/user", tags=["users"])
 
 
-@router.get("/me", response_model=UserRead)
+@router.get(
+    "/me",
+    response_model=UserRead,
+    summary="Return the authenticated user's profile",
+    response_description="Current user record",
+)
 def read_current_user(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
-@router.patch("/me", response_model=UserRead)
+@router.patch(
+    "/me",
+    response_model=UserRead,
+    summary="Update profile details",
+    response_description="Updated user record",
+)
 def update_current_user(
     payload: UserUpdate,
     session: Session = Depends(get_session),
@@ -41,7 +51,11 @@ def update_current_user(
     return current_user
 
 
-@router.delete("/me")
+@router.delete(
+    "/me",
+    summary="Delete the authenticated user and all owned QR codes",
+    response_description="Confirmation payload",
+)
 def delete_current_user(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),

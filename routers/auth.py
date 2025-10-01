@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
@@ -11,8 +11,16 @@ from schemas import Token, UserCreate, UserLogin, UserRead
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-@router.post("/signup", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/signup",
+    response_model=UserRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new user account",
+    response_description="Newly created user profile",
+)
 def signup(payload: UserCreate, session: Session = Depends(get_session)) -> User:
+    if len(payload.password) < 8:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must be at least 8 characters long")
     normalized_email = payload.email.lower()
     existing = session.exec(select(User).where(User.email == normalized_email)).first()
     if existing:
@@ -32,7 +40,12 @@ def signup(payload: UserCreate, session: Session = Depends(get_session)) -> User
     return user
 
 
-@router.post("/login", response_model=Token)
+@router.post(
+    "/login",
+    response_model=Token,
+    summary="Authenticate and receive an access token",
+    response_description="Bearer token for subsequent requests",
+)
 def login(payload: UserLogin, session: Session = Depends(get_session)) -> Token:
     normalized_email = payload.email.lower()
     user = session.exec(select(User).where(User.email == normalized_email)).first()
@@ -43,6 +56,6 @@ def login(payload: UserLogin, session: Session = Depends(get_session)) -> Token:
     return Token(access_token=token)
 
 
-@router.post("/logout")
+@router.post("/logout", summary="Client-side logout acknowledgement")
 def logout() -> dict:
     return {"ok": True}
