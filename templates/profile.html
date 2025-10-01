@@ -20,40 +20,34 @@
 
     <section class="profile-card">
       <h2>Account</h2>
-      <dl class="profile-info">
-        <div>
-          <dt>Name</dt>
-          <dd id="profileName">—</dd>
+      <form id="profileForm" class="profile-form">
+        <label class="form-field">
+          <span>Full name</span>
+          <input id="profileFullName" type="text" name="full_name" placeholder="Your name" />
+        </label>
+        <label class="form-field">
+          <span>Email</span>
+          <input id="profileEmail" type="email" disabled />
+        </label>
+        <label class="form-field">
+          <span>Member since</span>
+          <input id="profileSince" type="text" disabled />
+        </label>
+        <label class="form-field">
+          <span>New password (optional)</span>
+          <input id="profilePassword" type="password" name="password" placeholder="••••••••" />
+        </label>
+        <div class="profile-actions">
+          <button class="btn primary" id="saveProfile" type="submit">Save changes</button>
+          <button class="btn" id="logoutBtn" type="button">Logout</button>
+          <button class="btn danger" id="deleteAccount" type="button">Delete account</button>
         </div>
-        <div>
-          <dt>Email</dt>
-          <dd id="profileEmail">—</dd>
-        </div>
-        <div>
-          <dt>Member since</dt>
-          <dd id="profileSince">—</dd>
-        </div>
-      </dl>
-      <div class="profile-actions">
-        <button class="btn" id="editProfile" type="button">Edit details</button>
-        <button class="btn danger" id="logoutBtn" type="button">Logout</button>
-      </div>
+      </form>
     </section>
 
     <section class="profile-card">
       <h2>Security</h2>
-      <p class="subtitle">Update your password to keep your QR history safe.</p>
-      <form id="passwordForm" class="profile-form">
-        <label class="form-field">
-          <span>Current password</span>
-          <input type="password" name="current_password" required />
-        </label>
-        <label class="form-field">
-          <span>New password</span>
-          <input type="password" name="new_password" required />
-        </label>
-        <button type="submit" class="btn primary">Update password</button>
-      </form>
+      <p class="subtitle">Keep your account safe by using a strong password. Password updates are currently handled above.</p>
     </section>
   </div>
 </section>

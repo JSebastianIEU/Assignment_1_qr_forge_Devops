@@ -47,7 +47,7 @@ class TokenPayload(BaseModel):
 
 
 class QRBase(BaseModel):
-    title: str
+    title: Optional[str] = None
     url: HttpUrl
     foreground_color: HexColor = "#000000"
     background_color: HexOrTransparent = "#FFFFFF"

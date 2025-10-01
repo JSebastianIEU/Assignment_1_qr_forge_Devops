@@ -457,3 +457,9 @@ body.page-generator #main-panel{
   width: auto;
   height: auto;
 }
+.profile-form input[disabled]{
+  background:#eef2f9;
+  color:var(--muted);
+  cursor:not-allowed;
+}
+
