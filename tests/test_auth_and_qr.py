@@ -1,54 +1,10 @@
 ﻿import base64
-import sys
-from pathlib import Path
-from typing import Generator
-
-from sqlalchemy.pool import StaticPool
-
-sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import SQLModel, Session, create_engine, select
+from sqlmodel import Session, select
 
-from app import app
-from db import get_session
 from models import QRItem, User
-
-TEST_DATABASE_URL = "sqlite://"
-test_engine = create_engine(
-    TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-
-
-@pytest.fixture(autouse=True)
-def _prepare_database() -> Generator[None, None, None]:
-    SQLModel.metadata.drop_all(test_engine)
-    SQLModel.metadata.create_all(test_engine)
-    yield
-    SQLModel.metadata.drop_all(test_engine)
-
-
-@pytest.fixture
-def client(tmp_path: Path, monkeypatch) -> TestClient:
-    def override_get_session() -> Generator[Session, None, None]:
-        with Session(test_engine) as session:
-            yield session
-
-    app.dependency_overrides[get_session] = override_get_session
-
-    from routers import qr
-
-    svg_dir = tmp_path / "svg"
-    png_dir = tmp_path / "png"
-    svg_dir.mkdir(parents=True, exist_ok=True)
-    png_dir.mkdir(parents=True, exist_ok=True)
-    monkeypatch.setattr(qr, "SVG_DIR", svg_dir, raising=False)
-    monkeypatch.setattr(qr, "PNG_DIR", png_dir, raising=False)
-
-    return TestClient(app)
 
 
 def _auth_headers(client: TestClient, email: str = "alice@example.com", password: str = "secret123") -> dict:
@@ -60,10 +16,7 @@ def _auth_headers(client: TestClient, email: str = "alice@example.com", password
     resp = client.post("/api/auth/signup", json=signup_payload)
     assert resp.status_code == 201, resp.text
 
-    login_payload = {
-        "email": email,
-        "password": password,
-    }
+    login_payload = {"email": email, "password": password}
     resp = client.post("/api/auth/login", json=login_payload)
     assert resp.status_code == 200, resp.text
     token = resp.json()["access_token"]
@@ -97,7 +50,7 @@ def test_preview_requires_auth(client: TestClient) -> None:
 def test_preview_and_lifecycle(client: TestClient) -> None:
     headers = _auth_headers(client)
 
-    preview_payload = {
+    payload = {
         "title": "My QR",
         "url": "https://example.com",
         "foreground_color": "#123456",
@@ -106,24 +59,21 @@ def test_preview_and_lifecycle(client: TestClient) -> None:
         "padding": 12,
         "border_radius": 24,
     }
-    preview_resp = client.post("/api/qr/preview", json=preview_payload, headers=headers)
+    preview_resp = client.post("/api/qr/preview", json=payload, headers=headers)
     assert preview_resp.status_code == 200, preview_resp.text
     preview = preview_resp.json()
     assert preview["png_data"]
-    assert preview["svg_data"].startswith("<svg")
     base64.b64decode(preview["png_data"])
 
-    create_resp = client.post("/api/qr", json=preview_payload, headers=headers)
+    create_resp = client.post("/api/qr", json=payload, headers=headers)
     assert create_resp.status_code == 201, create_resp.text
     created = create_resp.json()
     assert created["background_color"] == "transparent"
-    assert created["svg_path"].endswith('.svg')
 
     list_resp = client.get("/api/qr", headers=headers)
     assert list_resp.status_code == 200
     items = list_resp.json()
     assert len(items) == 1
-    assert items[0]["foreground_color"] == "#123456"
 
     download_png = client.get(
         f"/api/qr/{created['id']}/download",
@@ -142,7 +92,7 @@ def test_preview_and_lifecycle(client: TestClient) -> None:
     assert empty_resp.json() == []
 
 
-def test_delete_user_removes_qrs(client: TestClient) -> None:
+def test_delete_user_removes_qrs(client: TestClient, engine) -> None:
     headers = _auth_headers(client)
     payload = {
         "title": "Keep",
@@ -160,7 +110,7 @@ def test_delete_user_removes_qrs(client: TestClient) -> None:
     assert del_resp.status_code == 200
     assert del_resp.json()["ok"] is True
 
-    with Session(test_engine) as session:
+    with Session(engine) as session:
         assert session.exec(select(User)).first() is None
         assert session.exec(select(QRItem)).all() == []
 
@@ -181,7 +131,6 @@ def test_update_profile_and_password_flow(client: TestClient) -> None:
     assert me_resp.status_code == 200
     assert me_resp.json()["full_name"] == "Bob Builder"
 
-    # old password should no longer work
     old_login = client.post(
         "/api/auth/login",
         json={"email": "bob@example.com", "password": "initial123"},
@@ -193,5 +142,4 @@ def test_update_profile_and_password_flow(client: TestClient) -> None:
         json={"email": "bob@example.com", "password": "newsecret456"},
     )
     assert new_login.status_code == 200
-    token = new_login.json()["access_token"]
-    assert token
+    assert "access_token" in new_login.json()

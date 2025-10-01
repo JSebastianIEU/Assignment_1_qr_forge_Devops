@@ -12,7 +12,7 @@ from models import QRItem, User
 from schemas import QRCreate, QRPreviewResponse
 from services.qr import QRConfig, encode_render, generate_qr_assets, render_qr
 
-router = APIRouter()
+router = APIRouter(prefix="/api/qr", tags=["qr"])
 SVG_DIR = Path("generated_svgs")
 PNG_DIR = Path("generated_pngs")
 SVG_DIR.mkdir(parents=True, exist_ok=True)
@@ -39,7 +39,12 @@ def _to_config(payload: QRCreate) -> QRConfig:
     )
 
 
-@router.post("/preview", response_model=QRPreviewResponse)
+@router.post(
+    "/preview",
+    response_model=QRPreviewResponse,
+    summary="Render a customised QR preview without saving",
+    response_description="Inline base64 PNG and SVG markup",
+)
 def preview_qr(
     payload: QRCreate,
     current_user: User = Depends(get_current_user),
@@ -50,7 +55,13 @@ def preview_qr(
     return QRPreviewResponse(svg_data=preview.svg_data, png_data=preview.png_data)
 
 
-@router.post("", response_model=QRItem, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=QRItem,
+    status_code=status.HTTP_201_CREATED,
+    summary="Persist a customised QR code",
+    response_description="Saved QR item with asset paths",
+)
 def create_qr(
     payload: QRCreate,
     session: Session = Depends(get_session),
@@ -80,7 +91,11 @@ def create_qr(
     return item
 
 
-@router.get("", response_model=List[QRItem])
+@router.get(
+    "",
+    response_model=List[QRItem],
+    summary="List QR codes owned by the authenticated user",
+)
 def list_qr(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
@@ -92,7 +107,11 @@ def list_qr(
     ).all()
 
 
-@router.get("/history", response_model=List[QRItem])
+@router.get(
+    "/history",
+    response_model=List[QRItem],
+    summary="Alias for listing QR history",
+)
 def history(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
@@ -100,7 +119,11 @@ def history(
     return list_qr(session=session, current_user=current_user)
 
 
-@router.delete("/{item_id}")
+@router.delete(
+    "/{item_id}",
+    summary="Delete a saved QR code",
+    response_description="Confirmation payload",
+)
 def delete_qr(
     item_id: int,
     session: Session = Depends(get_session),
@@ -118,7 +141,11 @@ def delete_qr(
     return {"ok": True}
 
 
-@router.get("/{item_id}/download")
+@router.get(
+    "/{item_id}/download",
+    summary="Download a saved QR code",
+    response_description="Binary SVG or PNG stream",
+)
 def download_qr(
     item_id: int,
     format: str = Query(default="svg", pattern="^(svg|png)$"),
