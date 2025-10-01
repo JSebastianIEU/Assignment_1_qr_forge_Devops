@@ -1,10 +1,11 @@
-from datetime import datetime
+﻿from datetime import datetime
 from typing import Annotated, Optional
 
 from pydantic import BaseModel, EmailStr, Field, HttpUrl
 
 
 HexColor = Annotated[str, Field(pattern=r"^#[0-9a-fA-F]{6}$")]
+HexOrTransparent = Annotated[str, Field(pattern=r"^(#[0-9a-fA-F]{6}|transparent)$")]
 
 
 class UserBase(BaseModel):
@@ -21,7 +22,8 @@ class UserRead(UserBase):
     created_at: datetime
     updated_at: datetime
 
-    model_config = dict(from_attributes=True)
+    class Config:
+        from_attributes = True
 
 
 class UserLogin(BaseModel):
@@ -44,12 +46,20 @@ class TokenPayload(BaseModel):
     exp: datetime
 
 
-class QRCreate(BaseModel):
+class QRBase(BaseModel):
     title: str
     url: HttpUrl
     foreground_color: HexColor = "#000000"
-    background_color: HexColor = "#FFFFFF"
+    background_color: HexOrTransparent = "#FFFFFF"
     size: int = Field(default=512, ge=128, le=1024)
     padding: int = Field(default=16, ge=0, le=128)
     border_radius: int = Field(default=0, ge=0, le=120)
-    overlay_text: Optional[str] = Field(default=None, max_length=4)
+
+
+class QRCreate(QRBase):
+    pass
+
+
+class QRPreviewResponse(BaseModel):
+    svg_data: str
+    png_data: str

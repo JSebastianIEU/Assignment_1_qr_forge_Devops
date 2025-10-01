@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
 
@@ -9,8 +9,8 @@ from sqlmodel import Session, select
 from core.security import get_current_user
 from db import get_session
 from models import QRItem, User
-from schemas import QRCreate
-from services.qr import QRConfig, generate_qr_assets
+from schemas import QRCreate, QRPreviewResponse
+from services.qr import QRConfig, encode_render, generate_qr_assets, render_qr
 
 router = APIRouter()
 SVG_DIR = Path("generated_svgs")
@@ -28,6 +28,28 @@ def _ensure_owner(session: Session, user: User, item_id: int) -> QRItem:
     return item
 
 
+def _to_config(payload: QRCreate) -> QRConfig:
+    return QRConfig(
+        url=str(payload.url),
+        foreground_color=payload.foreground_color,
+        background_color=payload.background_color,
+        size=payload.size,
+        padding=payload.padding,
+        border_radius=payload.border_radius,
+    )
+
+
+@router.post("/preview", response_model=QRPreviewResponse)
+def preview_qr(
+    payload: QRCreate,
+    current_user: User = Depends(get_current_user),
+) -> QRPreviewResponse:
+    _ = current_user
+    render = render_qr(_to_config(payload))
+    preview = encode_render(render)
+    return QRPreviewResponse(svg_data=preview.svg_data, png_data=preview.png_data)
+
+
 @router.post("", response_model=QRItem, status_code=status.HTTP_201_CREATED)
 def create_qr(
     payload: QRCreate,
@@ -35,16 +57,7 @@ def create_qr(
     current_user: User = Depends(get_current_user),
 ) -> QRItem:
     now = datetime.now(timezone.utc)
-    qr_config = QRConfig(
-        url=str(payload.url),
-        foreground_color=payload.foreground_color,
-        background_color=payload.background_color,
-        size=payload.size,
-        padding=payload.padding,
-        border_radius=payload.border_radius,
-        overlay_text=payload.overlay_text,
-    )
-    assets = generate_qr_assets(qr_config, svg_dir=SVG_DIR, png_dir=PNG_DIR)
+    assets = generate_qr_assets(_to_config(payload), svg_dir=SVG_DIR, png_dir=PNG_DIR)
 
     item = QRItem(
         user_id=current_user.id,
@@ -55,7 +68,7 @@ def create_qr(
         size=payload.size,
         padding=payload.padding,
         border_radius=payload.border_radius,
-        overlay_text=payload.overlay_text,
+        overlay_text=None,
         svg_path=str(assets.svg_path),
         png_path=str(assets.png_path),
         created_at=now,

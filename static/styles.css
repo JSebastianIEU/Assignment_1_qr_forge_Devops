@@ -1,4 +1,75 @@
-﻿:root{
+﻿/* Button style for color pickers */
+.color-btn {
+  display: inline-block;
+  background: #fff;
+  color: #0d2f77;
+  border-radius: 8px;
+  padding: 6px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #dfe6f5;
+  position: relative;
+  min-width: 90px;
+  text-align: center;
+}
+/* Style for color input to make color visible and match right-side look */
+input[type="color"] {
+  width: 48px;
+  height: 36px;
+  border: none;
+  background: none;
+  box-shadow: 0 1px 4px rgba(24,51,116,.10);
+  border-radius: 8px;
+  padding: 0;
+  margin-top: 6px;
+  cursor: pointer;
+  display: block;
+}
+input[type="color"]::-webkit-color-swatch {
+  border-radius: 8px;
+  border: 1px solid #dfe6f5;
+}
+input[type="color"]::-moz-color-swatch {
+  border-radius: 8px;
+  border: 1px solid #dfe6f5;
+}
+input[type="color"]::-ms-color-swatch {
+  border-radius: 8px;
+  border: 1px solid #dfe6f5;
+}
+
+/* All CSS variables properly enclosed in :root */
+:root {
+  --primary-color: #4F8A8B;
+  --secondary-color: #FBD46D;
+  --accent-color: #F76B8A;
+  --background-color: #F9F9F9;
+  --text-color: #222831;
+  --input-bg: #fff;
+  --input-border: #ccc;
+  --input-focus: #4F8A8B;
+  --btn-bg: #4F8A8B;
+  --btn-bg-hover: #357376;
+  --btn-text: #fff;
+  --color-picker-border: #ccc;
+  --color-picker-bg: #fff;
+  --color-picker-thumb: #4F8A8B;
+  --color-btn-border: #ccc;
+  --color-btn-bg: #fff;
+  --color-btn-hover: #FBD46D;
+  --color-btn-active: #F76B8A;
+  --checkbox-border: #4F8A8B;
+  --checkbox-bg: #fff;
+  --checkbox-checked-bg: #4F8A8B;
+  --checkbox-checked-color: #fff;
+  --history-bg: #fff;
+  --history-border: #ccc;
+  --history-thumb-bg: #FBD46D;
+  --history-thumb-border: #4F8A8B;
+  --history-thumb-hover: #F76B8A;
+  --svg-border: #ccc;
+  --svg-bg: #fff;
+  --svg-shadow: 0 2px 8px rgba(0,0,0,0.08);
   --bg: #f4f8ff;
   --card: #ffffff;
   --ink: #0f1b3d;
@@ -198,28 +269,28 @@ body.page-generator #main-panel{
   gap:16px;
 }
 
-.qr-box{
-  background:#0b2a6a;
-  color:white;
+.qr-box {
+  background: var(--card);
+  color: var(--ink);
   border-radius: 20px;
   padding: 18px;
   min-height: 340px;
-  display:grid; place-items:center;
-  position:relative;
+  display: grid;
+  place-items: center;
+  position: relative;
   box-shadow: var(--shadow-strong);
 }
-.qr-box img{
-  width: 220px; height: 220px; object-fit: contain; display:none;
-  filter: drop-shadow(0 6px 20px rgba(0,0,0,.25));
+.qr-box img {
+  max-width: 100%;
+  max-height: 100%;
+  display: none;
 }
-.qr-empty{ color:#d9e5ff; font-weight:700; text-align:center; opacity:.85; }
-.qr-overlay{
-  position:absolute; inset:0; display:grid; place-items:center;
-  font-weight:900; font-size:52px; color:#ffffff;
-  text-shadow: 0 4px 20px rgba(0,0,0,.35);
-  pointer-events:none;
+.qr-empty {
+  color: #6b7a99;
+  font-weight: 700;
+  text-align: center;
+  opacity: .8;
 }
-.qr-overlay.hidden{ display:none; }
 
 .controls{
   display:grid; gap:12px;
@@ -355,3 +426,34 @@ body.page-generator #main-panel{
 
 .visually-hidden{ position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
 
+
+.input-card{
+  background:#f8fbff;
+  border:1px dashed #dfe8fb;
+  border-radius: 18px;
+  padding:14px;
+  display:grid;
+  gap:10px;
+  overflow:hidden;
+}
+#saveQr{
+  margin-top:14px;
+  width:fit-content;
+}
+#saveQr:disabled{
+  opacity:0.45;
+  cursor:not-allowed;
+}
+
+/* Cleaned up .checkbox-inline rule */
+.checkbox-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #cfe0ff;
+}
+.checkbox-inline input {
+  width: auto;
+  height: auto;
+}
