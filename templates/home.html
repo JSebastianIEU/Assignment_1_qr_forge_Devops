@@ -1,0 +1,13 @@
+﻿{% extends "base.html" %}
+{% block title %}Home · QR Forge{% endblock %}
+
+{% block content %}
+<section class="home-hero">
+  <h1 class="title">Design. Personalize. Share.</h1>
+  <p class="subtitle">QR Forge lets you craft branded QR codes with color, padding, and overlays in seconds.</p>
+  <div class="hero-actions">
+    <a class="btn primary" href="{{ url_for('generator_page') }}">Start generating</a>
+    <a class="btn ghost" href="{{ url_for('history_page') }}">View history</a>
+  </div>
+</section>
+{% endblock %}

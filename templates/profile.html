@@ -1,0 +1,60 @@
+﻿{% extends "base.html" %}
+{% block title %}Profile · QR Forge{% endblock %}
+
+{% block content %}
+<section class="profile-panel">
+  <div id="profileGuard" class="auth-gate">
+    <h2>You are not signed in</h2>
+    <p>Login to edit your profile, review account details, and manage security settings.</p>
+    <div class="gate-actions">
+      <a class="btn primary" href="{{ url_for('login_page') }}">Login</a>
+      <a class="btn ghost" href="{{ url_for('signup_page') }}">Create account</a>
+    </div>
+  </div>
+
+  <div id="profileContent" class="profile-details hidden" data-profile-auth>
+    <header class="profile-header">
+      <h1 class="title">Your profile</h1>
+      <p class="subtitle">Manage your personal details and security preferences.</p>
+    </header>
+
+    <section class="profile-card">
+      <h2>Account</h2>
+      <dl class="profile-info">
+        <div>
+          <dt>Name</dt>
+          <dd id="profileName">—</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd id="profileEmail">—</dd>
+        </div>
+        <div>
+          <dt>Member since</dt>
+          <dd id="profileSince">—</dd>
+        </div>
+      </dl>
+      <div class="profile-actions">
+        <button class="btn" id="editProfile" type="button">Edit details</button>
+        <button class="btn danger" id="logoutBtn" type="button">Logout</button>
+      </div>
+    </section>
+
+    <section class="profile-card">
+      <h2>Security</h2>
+      <p class="subtitle">Update your password to keep your QR history safe.</p>
+      <form id="passwordForm" class="profile-form">
+        <label class="form-field">
+          <span>Current password</span>
+          <input type="password" name="current_password" required />
+        </label>
+        <label class="form-field">
+          <span>New password</span>
+          <input type="password" name="new_password" required />
+        </label>
+        <button type="submit" class="btn primary">Update password</button>
+      </form>
+    </section>
+  </div>
+</section>
+{% endblock %}

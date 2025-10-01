@@ -1,0 +1,26 @@
+﻿{% extends "base.html" %}
+{% block title %}Login · QR Forge{% endblock %}
+
+{% block content %}
+<section class="auth-panel">
+  <div class="auth-copy">
+    <h1 class="title">Welcome back</h1>
+    <p class="subtitle">Sign in to manage your QR history and profile.</p>
+  </div>
+  <form id="login-form" class="auth-card">
+    <label class="form-field">
+      <span>Email</span>
+      <input type="email" name="email" placeholder="you@example.com" required />
+    </label>
+    <label class="form-field">
+      <span>Password</span>
+      <input type="password" name="password" placeholder="••••••••" required />
+    </label>
+    <button type="submit" class="btn primary full">Login</button>
+    <p class="auth-link">
+      No account yet?
+      <a href="{{ url_for('signup_page') }}">Create one</a>
+    </p>
+  </form>
+</section>
+{% endblock %}
