@@ -51,18 +51,18 @@ def client(tmp_path: Path, monkeypatch) -> TestClient:
     return TestClient(app)
 
 
-def _auth_headers(client: TestClient) -> dict:
+def _auth_headers(client: TestClient, email: str = "alice@example.com", password: str = "secret123") -> dict:
     signup_payload = {
-        "email": "alice@example.com",
+        "email": email,
         "full_name": "Alice Example",
-        "password": "secret123",
+        "password": password,
     }
     resp = client.post("/api/auth/signup", json=signup_payload)
     assert resp.status_code == 201, resp.text
 
     login_payload = {
-        "email": signup_payload["email"],
-        "password": signup_payload["password"],
+        "email": email,
+        "password": password,
     }
     resp = client.post("/api/auth/login", json=login_payload)
     assert resp.status_code == 200, resp.text
@@ -74,6 +74,22 @@ def test_create_qr_requires_auth(client: TestClient) -> None:
     resp = client.post(
         "/api/qr",
         json={"title": "Unauth", "url": "https://example.com"},
+    )
+    assert resp.status_code == 401
+
+
+def test_preview_requires_auth(client: TestClient) -> None:
+    resp = client.post(
+        "/api/qr/preview",
+        json={
+            "title": "No auth",
+            "url": "https://example.com",
+            "foreground_color": "#000000",
+            "background_color": "#ffffff",
+            "size": 256,
+            "padding": 8,
+            "border_radius": 8,
+        },
     )
     assert resp.status_code == 401
 
@@ -107,6 +123,7 @@ def test_preview_and_lifecycle(client: TestClient) -> None:
     assert list_resp.status_code == 200
     items = list_resp.json()
     assert len(items) == 1
+    assert items[0]["foreground_color"] == "#123456"
 
     download_png = client.get(
         f"/api/qr/{created['id']}/download",
@@ -146,3 +163,35 @@ def test_delete_user_removes_qrs(client: TestClient) -> None:
     with Session(test_engine) as session:
         assert session.exec(select(User)).first() is None
         assert session.exec(select(QRItem)).all() == []
+
+
+def test_update_profile_and_password_flow(client: TestClient) -> None:
+    headers = _auth_headers(client, email="bob@example.com", password="initial123")
+
+    update_resp = client.patch(
+        "/api/user/me",
+        json={"full_name": "Bob Builder", "password": "newsecret456"},
+        headers=headers,
+    )
+    assert update_resp.status_code == 200, update_resp.text
+    updated = update_resp.json()
+    assert updated["full_name"] == "Bob Builder"
+
+    me_resp = client.get("/api/user/me", headers=headers)
+    assert me_resp.status_code == 200
+    assert me_resp.json()["full_name"] == "Bob Builder"
+
+    # old password should no longer work
+    old_login = client.post(
+        "/api/auth/login",
+        json={"email": "bob@example.com", "password": "initial123"},
+    )
+    assert old_login.status_code == 401
+
+    new_login = client.post(
+        "/api/auth/login",
+        json={"email": "bob@example.com", "password": "newsecret456"},
+    )
+    assert new_login.status_code == 200
+    token = new_login.json()["access_token"]
+    assert token

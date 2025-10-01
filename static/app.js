@@ -140,9 +140,10 @@ let historyCache = new Map();
 function historyCardTemplate(item) {
   const created = formatDate(item.created_at);
   const title = escapeHtml(item.title || 'Untitled QR');
+  // Placeholder src, will be replaced after fetch
   return `
     <article class="history-card" data-id="${item.id}" data-title="${title}">
-      <img data-id="${item.id}" alt="Preview for ${title}" loading="lazy" />
+      <img data-thumb-id="${item.id}" alt="Preview for ${title}" loading="lazy" />
       <div class="history-card-body">
         <div class="history-card-title">${title}</div>
         <div class="history-card-meta">Created ${created}</div>
@@ -187,36 +188,47 @@ function bindHistoryActions(container) {
   });
 }
 
-function updateHistoryUI(items) {
+async function updateHistoryUI(items) {
   historyCache = new Map(items.map((entry) => [String(entry.id), entry]));
   const hasItems = items.length > 0;
   historyTargets.empty?.classList.toggle('hidden', hasItems);
-  function setThumb(img, item) {
-    fetchAssetBlob(item.id, 'png').then(blob => {
-      const url = URL.createObjectURL(blob);
-      img.src = url;
-    }).catch(() => {
-      img.alt = 'Preview unavailable';
-    });
-  }
-  function renderHistory(container, items) {
-    container.innerHTML = hasItems ? items.map(historyCardTemplate).join('') : '';
-    container.querySelectorAll('img[data-id]').forEach(img => {
-      const id = img.getAttribute('data-id');
-      const item = historyCache.get(id);
-      if (item) setThumb(img, item);
-    });
-    bindHistoryActions(container);
-  }
   if (historyTargets.page) {
     historyTargets.page.classList.toggle('empty', !hasItems);
-    renderHistory(historyTargets.page, items);
+    historyTargets.page.innerHTML = hasItems ? items.map(historyCardTemplate).join('') : '';
+    bindHistoryActions(historyTargets.page);
+    // Fetch and set thumbnails
+    if (hasItems) {
+      for (const item of items) {
+        try {
+          const res = await authorizedFetch(`/api/qr/${item.id}/download?format=png&v=${encodeURIComponent(item.updated_at || '')}`);
+          if (res.ok) {
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const img = historyTargets.page.querySelector(`img[data-thumb-id="${item.id}"]`);
+            if (img) img.src = url;
+          }
+        } catch (err) { /* ignore */ }
+      }
+    }
   }
   if (historyTargets.drawer) {
+    historyTargets.drawer.innerHTML = hasItems
+      ? items.slice(0, 8).map(historyCardTemplate).join('')
+      : '<div class="history-empty">No QR codes yet. Generate a new one to see it here.</div>';
+    bindHistoryActions(historyTargets.drawer);
+    // Fetch and set thumbnails for drawer
     if (hasItems) {
-      renderHistory(historyTargets.drawer, items.slice(0, 8));
-    } else {
-      historyTargets.drawer.innerHTML = '<div class="history-empty">No QR codes yet. Generate a new one to see it here.</div>';
+      for (const item of items.slice(0, 8)) {
+        try {
+          const res = await authorizedFetch(`/api/qr/${item.id}/download?format=png&v=${encodeURIComponent(item.updated_at || '')}`);
+          if (res.ok) {
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const img = historyTargets.drawer.querySelector(`img[data-thumb-id="${item.id}"]`);
+            if (img) img.src = url;
+          }
+        } catch (err) { /* ignore */ }
+      }
     }
   }
 }
@@ -324,6 +336,7 @@ function initGenerator() {
   const guard = document.getElementById('generatorGuard');
   const generatorNodes = document.querySelectorAll('[data-generator-auth]');
   const form = document.getElementById('qr-form');
+  const pdf = document.getElementById('qrBox');
   const qrBox = document.getElementById('qrBox');
   const previewImg = document.getElementById('qrPreview');
   const previewEmpty = document.getElementById('qrEmpty');
@@ -384,7 +397,6 @@ function initGenerator() {
     qrBox.style.backgroundColor = bg;
     qrBox.style.borderRadius = `${payload.border_radius}px`;
     previewImg.style.borderRadius = `${Math.max(payload.border_radius - 4, 0)}px`;
-    previewImg.style.padding = '0';
   }
 
   function setPreviewFromBase64(pngData, payload) {
@@ -485,10 +497,8 @@ function initGenerator() {
     input?.addEventListener('input', () => {
       applyControlLabels();
       if (!form) return;
-      if (input === bgTransparent && bgTransparent.checked) {
-        bgColor.disabled = true;
-      } else if (input === bgTransparent && !bgTransparent.checked) {
-        bgColor.disabled = false;
+      if (input === bgTransparent) {
+        bgColor.disabled = bgTransparent.checked;
       }
       const payload = payloadFromForm(form);
       if (!payload.url) return;
@@ -639,16 +649,17 @@ function initAuthForms() {
 }
 
 function initProfile() {
-  const nameEl = document.getElementById('profileName');
-  if (!nameEl) return;
-  const emailEl = document.getElementById('profileEmail');
-  const sinceEl = document.getElementById('profileSince');
+  const fullNameInput = document.getElementById('profileFullName');
+  const emailInput = document.getElementById('profileEmail');
+  const sinceInput = document.getElementById('profileSince');
   const guard = document.getElementById('profileGuard');
   const content = document.getElementById('profileContent');
   const logoutBtn = document.getElementById('logoutBtn');
-  const passwordForm = document.getElementById('passwordForm');
-  const editProfileBtn = document.getElementById('editProfile');
   const deleteAccountBtn = document.getElementById('deleteAccount');
+  const profileForm = document.getElementById('profileForm');
+  const passwordInput = document.getElementById('profilePassword');
+
+  if (!profileForm) return;
 
   async function syncProfile() {
     if (!isAuthed()) {
@@ -662,9 +673,10 @@ function initProfile() {
       const res = await authorizedFetch('/api/user/me');
       if (!res.ok) throw new Error('Failed to load profile');
       const user = await res.json();
-      nameEl.textContent = user.full_name || '—';
-      emailEl.textContent = user.email || '—';
-      sinceEl.textContent = formatDate(user.created_at);
+      if (fullNameInput) fullNameInput.value = user.full_name || '';
+      if (emailInput) emailInput.value = user.email || '';
+      if (sinceInput) sinceInput.value = formatDate(user.created_at);
+      if (passwordInput) passwordInput.value = '';
     } catch (err) {
       if (err.message !== 'Unauthorized') {
         console.error(err);
@@ -672,6 +684,34 @@ function initProfile() {
       }
     }
   }
+
+  profileForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!requireAuth()) return;
+    const payload = {};
+    if (fullNameInput && fullNameInput.value.trim() !== '') {
+      payload.full_name = fullNameInput.value.trim();
+    }
+    if (passwordInput && passwordInput.value) {
+      payload.password = passwordInput.value;
+    }
+    if (Object.keys(payload).length === 0) {
+      toast('Nothing to update');
+      return;
+    }
+    const res = await authorizedFetch('/api/user/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const msg = await res.text();
+      toast(msg || 'Unable to update profile');
+      return;
+    }
+    toast('Profile updated');
+    await syncProfile();
+  });
 
   logoutBtn?.addEventListener('click', async () => {
     if (!requireAuth()) return;
@@ -702,15 +742,6 @@ function initProfile() {
         toast('Unable to delete account');
       }
     }
-  });
-
-  passwordForm?.addEventListener('submit', (event) => {
-    event.preventDefault();
-    toast('Password updates are coming soon.');
-  });
-
-  editProfileBtn?.addEventListener('click', () => {
-    toast('Profile editing will be available in the next update.');
   });
 
   syncProfile();
