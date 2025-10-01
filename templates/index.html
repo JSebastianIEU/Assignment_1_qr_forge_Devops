@@ -14,17 +14,43 @@
 
   <div id="generatorFormWrap" data-generator-auth>
     <h1 class="title">Enter your text</h1>
-    <p class="subtitle">Your QR code will be generated automatically.</p>
+    <p class="subtitle">Preview your QR code and save it when you're ready.</p>
 
     <form id="qr-form" class="input-card">
       <input id="url" name="url" type="url" placeholder="https://example.com" required />
       <div class="row">
         <input id="title" name="title" type="text" placeholder="QR title (optional)" />
-        <button type="submit" class="btn primary">Generate</button>
+        <button id="previewBtn" type="submit" class="btn primary">Preview</button>
       </div>
+      <div class="controls" id="controls">
+        <div class="control">
+          <label>Foreground color</label>
+          <input id="fgColor" type="color" value="#0a0a0a" />
+        </div>
+        <div class="control">
+          <label>Background color</label>
+          <div class="seg-2">
+            <input id="bgColor" type="color" value="#ffffff" />
+            <label class="checkbox-inline">
+              <input id="bgTransparent" type="checkbox" /> Transparent
+            </label>
+          </div>
+        </div>
+        <div class="control">
+          <label>Size <span id="sizeValue" class="control-value">512 px</span></label>
+          <input id="sizeRange" type="range" min="128" max="1024" step="64" value="512" />
+        </div>
+        <div class="control">
+          <label>Padding <span id="paddingValue" class="control-value">16 px</span></label>
+          <input id="paddingRange" type="range" min="0" max="80" step="4" value="16" />
+        </div>
+        <div class="control">
+          <label>Border radius</label>
+          <input id="radiusRange" type="range" min="0" max="60" value="20" />
+        </div>
+      </div>
+      <button id="saveQr" class="btn" type="button" disabled>Save to history</button>
     </form>
-
-    <button id="editInputs" class="btn ghost small hidden" type="button">Edit link &amp; title</button>
   </div>
 </section>
 
@@ -33,44 +59,7 @@
     <div class="qr-box" id="qrBox">
       <img id="qrPreview" alt="QR preview" />
       <div id="qrEmpty" class="qr-empty">Your QR preview will appear here</div>
-      <div id="qrOverlay" class="qr-overlay hidden">QR</div>
     </div>
-
-    <div class="controls" id="controls">
-      <div class="control">
-        <label>Foreground color</label>
-        <input id="fgColor" type="color" value="#0a0a0a" />
-      </div>
-
-      <div class="control">
-        <label>Background color</label>
-        <input id="bgColor" type="color" value="#ffffff" />
-      </div>
-
-      <div class="control">
-        <label>Size <span id="sizeValue" class="control-value">512 px</span></label>
-        <input id="sizeRange" type="range" min="128" max="1024" step="64" value="512" />
-      </div>
-
-      <div class="control">
-        <label>Padding <span id="paddingValue" class="control-value">16 px</span></label>
-        <input id="paddingRange" type="range" min="0" max="80" step="4" value="16" />
-      </div>
-
-      <div class="control">
-        <label>Border radius</label>
-        <input id="radiusRange" type="range" min="0" max="60" value="20" />
-      </div>
-
-      <div class="control">
-        <label>Center text / icon</label>
-        <div class="seg-2">
-          <input id="overlayText" placeholder="e.g. QF" />
-          <button id="toggleOverlay" class="btn" type="button">Toggle</button>
-        </div>
-      </div>
-    </div>
-
     <div class="download-row">
       <button id="dlSvg" class="btn" type="button">Download SVG</button>
       <button id="dlPng" class="btn accent" type="button">Download PNG</button>
