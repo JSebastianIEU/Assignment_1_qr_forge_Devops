@@ -127,8 +127,3 @@ All protected routes require a bearer token (`Authorization: Bearer <token>`).
 ├── report/                # Final report and annex diagrams/mockups
 └── README.md
 ```
-
-## Contributing / next steps
-- Ensure `pytest` passes before committing.
-- Generated asset folders (`generated_svgs/`, `generated_pngs/`) are ignored by git; inspect them locally via the history drawer.
-- Future enhancements: richer profile editing, bulk history actions, additional QR formats, cached thumbnails, and integrated email verification.
