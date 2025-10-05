@@ -1,6 +1,5 @@
 ﻿from fastapi.testclient import TestClient
 
-
 def auth_headers(client: TestClient, email: str = "qrtester@example.com") -> dict:
     payload = {
         "email": email,

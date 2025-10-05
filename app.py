@@ -1,7 +1,7 @@
 ﻿from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -57,6 +57,11 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 __all__ = ("app",)
 
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon() -> FileResponse:
+    return FileResponse(BASE_DIR / "static" / "favicon.ico")
 
 
 @app.get("/", response_class=HTMLResponse, name="home", summary="Serve the landing page")
