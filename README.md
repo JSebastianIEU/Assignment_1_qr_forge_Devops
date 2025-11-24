@@ -65,7 +65,15 @@ pytest
 ```
 The test-suite spins up an in-memory SQLite database and overrides the QR asset directories, so it never touches your local data files.
 
-### 7. Useful maintenance commands
+### 7. Build & run with Docker
+```bash
+docker build -t qr-app .
+docker run -p 8000:8000 qr-app
+```
+- UI: http://127.0.0.1:8000/
+- API docs: http://127.0.0.1:8000/docs
+
+### 8. Useful maintenance commands
 ```bash
 # format & lint (optional if you add tooling)
 python -m ruff check .
@@ -75,6 +83,11 @@ python -m ruff format .
 Remove-Item generated_svgs/* -Force
 Remove-Item generated_pngs/* -Force
 ```
+
+## CI pipeline
+- GitHub Actions workflow (`.github/workflows/ci.yaml`) runs on every push (except `main`) and on PRs to `main`.
+- Steps: checkout, set up Python 3.11, install deps, run `coverage run -m pytest` then `coverage report --fail-under=70`, and build the Docker image (`docker build -t qr-app-ci .`).
+- Coverage gate: pipeline fails if coverage < 70%.
 
 ## API overview
 | Method | Endpoint | Description |
