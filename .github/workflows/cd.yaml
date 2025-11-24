@@ -1,24 +1,30 @@
 name: CD
 
+
 on:
   push:
     branches:
       - main   # Only runs on push to `main`
+
   workflow_dispatch: # allows manual runs from the Actions UI
 
 jobs:
+
   deploy:
     runs-on: ubuntu-latest
+
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       # Login to Azure using the Service Principal stored in your repository secrets
+
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
+
 
       # Login to Azure Container Registry
       - name: ACR Login
@@ -27,12 +33,16 @@ jobs:
 
       # Build and Push Docker image
       - name: Build and Push Image
+
         env:
           ACR_NAME: jsebastianacr
+
           IMAGE_NAME: qr-app
         run: |
+
           IMAGE_TAG=${GITHUB_SHA}
           FULL_IMAGE="$ACR_NAME.azurecr.io/$IMAGE_NAME"
+
 
           echo "Building image $FULL_IMAGE:$IMAGE_TAG"
           docker build -t $FULL_IMAGE:$IMAGE_TAG .
