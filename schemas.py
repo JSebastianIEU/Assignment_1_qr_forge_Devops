@@ -14,7 +14,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(min_length=8)
 
     model_config = ConfigDict(json_schema_extra={
         "example": {
@@ -55,7 +55,7 @@ class UserLogin(BaseModel):
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
-    password: Optional[str] = None
+    password: Optional[str] = Field(default=None, min_length=8)
 
 
 class Token(BaseModel):
@@ -76,13 +76,14 @@ class TokenPayload(BaseModel):
 
 
 class QRBase(BaseModel):
-    title: str
+    title: str = Field(max_length=200)
     url: HttpUrl
     foreground_color: HexColor = "#000000"
     background_color: HexOrTransparent = "#FFFFFF"
     size: int = Field(default=512, ge=128, le=1024)
     padding: int = Field(default=16, ge=0, le=128)
     border_radius: int = Field(default=0, ge=0, le=120)
+    overlay_text: Optional[str] = Field(default=None, max_length=4)
 
     model_config = ConfigDict(json_schema_extra={
         "example": {
