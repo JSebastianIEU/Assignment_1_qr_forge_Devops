@@ -42,13 +42,21 @@ pip install -r requirements.txt
 ```
 
 ### 4. (Optional) Configure environment variables
-Create a `.env` file (or export variables in your shell) if you want to customise JWT behaviour:
+Create a `.env` file (or export variables in your shell) to mirror production/Azure App Service:
 ```
-QR_FORGE_SECRET_KEY=change-me
-QR_FORGE_TOKEN_EXPIRE_MINUTES=720
-QR_FORGE_TOKEN_ALG=HS256
+# Auth / security
+SECRET_KEY=change-me
+ACCESS_TOKEN_EXPIRE_MINUTES=720
+ALGORITHM=HS256
+
+# Database (default points to Azure App Service persistent storage)
+DATABASE_URL=sqlite:///home/site/wwwroot/qrcodes.db
+
+# Asset directories
+QR_ASSETS_DIR=/home/site/wwwroot/qr_assets
+QR_TEMP_DIR=/home/site/wwwroot/qr_temp
 ```
-Default values are used when these are not supplied.
+Reasonable defaults are applied when not supplied; directories are created automatically at startup.
 
 ### 5. Run the application
 ```bash
@@ -88,6 +96,16 @@ Remove-Item generated_pngs/* -Force
 - GitHub Actions workflow (`.github/workflows/ci.yaml`) runs on every push (except `main`) and on PRs to `main`.
 - Steps: checkout, set up Python 3.11, install deps, run `coverage run -m pytest` then `coverage report --fail-under=70`, and build the Docker image (`docker build -t qr-app-ci .`).
 - Coverage gate: pipeline fails if coverage < 70%.
+
+## Azure App Service configuration
+Set the following application settings in the App Service (or in your deployment slot):
+- `SECRET_KEY`
+- `ACCESS_TOKEN_EXPIRE_MINUTES`
+- `ALGORITHM`
+- `DATABASE_URL` (e.g., `sqlite:///home/site/wwwroot/qrcodes.db` or your Postgres/MySQL URL)
+- `QR_ASSETS_DIR` (e.g., `/home/site/wwwroot/qr_assets`)
+- `QR_TEMP_DIR` (e.g., `/home/site/wwwroot/qr_temp`)
+Directories for asset storage are auto-created at startup.
 
 ## API overview
 | Method | Endpoint | Description |

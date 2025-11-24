@@ -12,19 +12,23 @@ load_dotenv()
 class Settings:
     """Runtime configuration pulled from environment variables."""
 
-    secret_key: str = field(default_factory=lambda: os.getenv("QR_FORGE_SECRET_KEY", "change-me-in-env"))
+    secret_key: str = field(default_factory=lambda: os.getenv("SECRET_KEY", "change-me-in-env"))
     access_token_expire_minutes: int = field(
-        default_factory=lambda: int(os.getenv("QR_FORGE_TOKEN_EXPIRE_MINUTES", "720"))
+        default_factory=lambda: int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "720"))
     )
-    algorithm: str = field(default_factory=lambda: os.getenv("QR_FORGE_TOKEN_ALG", "HS256"))
-    database_url: str = field(default_factory=lambda: os.getenv("QR_FORGE_DATABASE_URL", "sqlite:///qr.db"))
-    svg_dir: Path = field(default_factory=lambda: Path(os.getenv("QR_FORGE_SVG_DIR", "generated_svgs")))
-    png_dir: Path = field(default_factory=lambda: Path(os.getenv("QR_FORGE_PNG_DIR", "generated_pngs")))
+    algorithm: str = field(default_factory=lambda: os.getenv("ALGORITHM", "HS256"))
+    database_url: str = field(
+        default_factory=lambda: os.getenv("DATABASE_URL", "sqlite:///home/site/wwwroot/qrcodes.db")
+    )
+    assets_dir: Path = field(default_factory=lambda: Path(os.getenv("QR_ASSETS_DIR", "/home/site/wwwroot/qr_assets")))
+    temp_dir: Path = field(default_factory=lambda: Path(os.getenv("QR_TEMP_DIR", "/home/site/wwwroot/qr_temp")))
 
     def __post_init__(self) -> None:
-        # Normalise paths for downstream usage.
-        self.svg_dir = Path(self.svg_dir)
-        self.png_dir = Path(self.png_dir)
+        # Normalise paths for downstream usage and ensure directories exist for file writes.
+        self.assets_dir = Path(self.assets_dir)
+        self.temp_dir = Path(self.temp_dir)
+        os.makedirs(self.assets_dir, exist_ok=True)
+        os.makedirs(self.temp_dir, exist_ok=True)
 
 
 @lru_cache(maxsize=1)

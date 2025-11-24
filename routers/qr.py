@@ -13,8 +13,8 @@ from schemas import QRCreate, QRPreviewResponse
 from services import qr_items
 
 router = APIRouter(prefix="/api/qr", tags=["qr"])
-SVG_DIR = settings.svg_dir
-PNG_DIR = settings.png_dir
+SVG_DIR = settings.assets_dir
+PNG_DIR = settings.temp_dir
 
 
 @router.post(

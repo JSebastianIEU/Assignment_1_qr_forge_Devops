@@ -1,6 +1,8 @@
 from collections.abc import Generator
+from pathlib import Path
 from typing import Any, Dict, Optional
 
+from sqlalchemy.engine import make_url
 from sqlmodel import Session, SQLModel, create_engine
 
 from config import settings
@@ -12,8 +14,17 @@ def _connect_args(database_url: str) -> Dict[str, Any]:
     return {}
 
 
+def _ensure_sqlite_dir(database_url: str) -> None:
+    if not database_url.startswith("sqlite"):
+        return
+    url = make_url(database_url)
+    if url.database:
+        Path(url.database).parent.mkdir(parents=True, exist_ok=True)
+
+
 def get_engine(database_url: Optional[str] = None):
     url = database_url or settings.database_url
+    _ensure_sqlite_dir(url)
     return create_engine(url, echo=False, connect_args=_connect_args(url))
 
 
