@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main   # Only runs on push to `main`
+  workflow_dispatch: # allows manual runs from the Actions UI
 
 jobs:
   deploy:
