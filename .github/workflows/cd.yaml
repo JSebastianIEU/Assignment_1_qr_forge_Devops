@@ -43,6 +43,27 @@ jobs:
           docker tag $FULL_IMAGE:$IMAGE_TAG $FULL_IMAGE:latest
           docker push $FULL_IMAGE:latest
 
+      # Run DB migrations using the built image (safer: migrations run with same deps/code)
+      - name: Validate POSTGRES_URL and run migrations inside image
+        env:
+          ACR_NAME: jsebastianacr
+          IMAGE_NAME: qr-app
+          IMAGE_TAG: ${GITHUB_SHA}
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+        run: |
+          if [ -z "${POSTGRES_URL}" ]; then
+            echo "ERROR: POSTGRES_URL secret is not set. Aborting migration step." >&2
+            exit 1
+          fi
+
+          FULL_IMAGE="$ACR_NAME.azurecr.io/$IMAGE_NAME:$IMAGE_TAG"
+          echo "Pulling image $FULL_IMAGE"
+          docker pull $FULL_IMAGE
+
+          echo "Running migrations inside container (one-shot)"
+          docker run --rm -e POSTGRES_URL="${POSTGRES_URL}" $FULL_IMAGE alembic upgrade head
+
+
       # Run DB migrations (alembic) before deploying
       - name: Run DB migrations
         env:

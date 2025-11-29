@@ -35,10 +35,27 @@ jobs:
           pip install --no-cache-dir -r requirements.txt
           pip install --no-cache-dir coverage pytest
 
+      - name: Lint (ruff) and format check (black)
+        run: |
+          pip install --no-cache-dir ruff black
+          ruff check .
+          black --check .
+
       - name: Run tests with coverage (minimum 70%)
         run: |
-          coverage run -m pytest
+          pip install --no-cache-dir pytest-cov
+          coverage run -m pytest --junitxml=tests/results.xml
+          coverage xml -o coverage.xml
           coverage report --fail-under=70
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts
+          path: |
+            coverage.xml
+            tests/results.xml
 
       - name: Build Docker image (test only)
         run: docker build -t qr-app-ci .
+      

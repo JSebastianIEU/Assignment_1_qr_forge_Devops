@@ -29,8 +29,10 @@ class Settings:
         # Normalise paths for downstream usage and ensure directories exist for file writes.
         self.assets_dir = Path(self.assets_dir)
         self.temp_dir = Path(self.temp_dir)
-        os.makedirs(self.assets_dir, exist_ok=True)
-        os.makedirs(self.temp_dir, exist_ok=True)
+        # Do NOT perform filesystem side-effects at import time. Directory
+        # creation should be performed at application startup by calling
+        # `ensure_dirs(settings)` from `core.bootstrap`.
+        pass
 
 
 @lru_cache(maxsize=1)

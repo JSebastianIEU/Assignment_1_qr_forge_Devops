@@ -99,6 +99,42 @@ Remove-Item generated_pngs/* -Force
 - Steps: checkout, set up Python 3.11, install deps, run `coverage run -m pytest` then `coverage report --fail-under=70`, and build the Docker image (`docker build -t qr-app-ci .`).
 - Coverage gate: pipeline fails if coverage < 70%.
 
+## CI / CD (summary)
+- CI (`.github/workflows/ci.yaml`): runs lint (ruff + black check), unit and integration tests, produces `coverage.xml` and `tests/results.xml` artifacts, enforces a coverage gate `--fail-under=70`, and builds a test Docker image.
+- CD (`.github/workflows/cd.yaml`): runs on `push` to `main` and can be triggered manually; it builds and pushes the Docker image to Azure Container Registry, runs Alembic migrations from the built image (using the `POSTGRES_URL` secret) and then deploys the image to the configured Azure Web App.
+
+## Monitoring & Metrics
+
+This project exposes Prometheus-compatible metrics at the unauthenticated endpoint `/metrics` when the `prometheus_fastapi_instrumentator` package is installed. Metrics include:
+
+- Request count per endpoint
+- Request latency histogram per endpoint
+- HTTP status code counters
+
+To run Prometheus and Grafana locally for simple exploration, use the files in `monitoring/`:
+
+```bash
+# Start the app (locally or via the image) and then in another shell:
+docker compose -f monitoring/docker-compose.monitoring.yml up
+```
+
+Prometheus will be available at http://localhost:9090 and Grafana at http://localhost:3000 (admin/admin). The Prometheus config scrapes `/metrics` from a service named `app` on port 8000 by default.
+
+## Logging
+
+Structured logging is configured at application startup. Use the environment variable `LOG_LEVEL` to control verbosity (e.g. `DEBUG`, `INFO`, `WARNING`, `ERROR`). Logs include: timestamp, level, module and message.
+
+## Pre-commit and developer tooling
+
+This repository includes `ruff`, `black` and a `.pre-commit-config.yaml`. To enable hooks locally:
+
+```powershell
+pip install pre-commit
+pre-commit install
+```
+
+The pre-commit hooks run ruff and black (check mode) on commit.
+
 ## Azure App Service configuration
 Set the following application settings in the App Service (or in your deployment slot):
 - `SECRET_KEY`

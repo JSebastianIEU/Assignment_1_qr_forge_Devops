@@ -21,3 +21,12 @@
 - **Workflow CI** (`.github/workflows/ci.yaml`): se ejecuta en pushes (excepto `main`) y PRs hacia `main`. Pasos: checkout → setup Python 3.11 → instalar dependencias → `coverage run -m pytest` + `coverage report --fail-under=70` → `docker build -t qr-app-ci .`.
 - **Cobertura mínima**: la acción falla si la cobertura es <70%.
 - **Secrets preparados para CD**: crear en GitHub Actions los secrets `AZURE_CREDENTIALS` (JSON completo del SP) y opcionalmente `AZURE_APP_ID`, `AZURE_TENANT`, `AZURE_SP_PASSWORD` para habilitar `azure/login@v2` en el siguiente sprint.
+
+## Enhancements added (Monitoring, Logging, CI/CD safety)
+
+- **Logging**: structured logging added via `core/logging.py`. The app now configures logging at startup and uses `LOG_LEVEL` env var.
+- **Metrics**: Prometheus instrumentation added using `prometheus_fastapi_instrumentator` (exposes `/metrics`). A `monitoring/` folder contains sample `prometheus.yml` and `docker-compose.monitoring.yml` for local testing.
+- **CI**: lint step (ruff + black check) added; CI now generates `coverage.xml` and `tests/results.xml` artifacts uploaded to GitHub Actions.
+- **CD**: migrations now run inside the built Docker image (`docker run --rm ... alembic upgrade head`) so the migrations use same code and dependencies as the deployed container; the workflow validates `POSTGRES_URL` secret before running migrations.
+
+These changes specifically address the rubric items: code quality (linting), testing (artifact + coverage gate), CI/CD safety (migrations from image), monitoring (metrics + example configs) and observability (structured logs).

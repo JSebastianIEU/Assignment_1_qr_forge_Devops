@@ -8,6 +8,17 @@ from fastapi.templating import Jinja2Templates
 from db import init_db
 from routers import auth, export, qr, user
 
+# Lazy startup utilities
+from core.logging import configure_logging, get_logger
+from core.bootstrap import ensure_dirs
+from config import settings
+
+# Prometheus instrumentation
+try:
+    from prometheus_fastapi_instrumentator import Instrumentator
+except Exception:
+    Instrumentator = None
+
 BASE_DIR = Path(__file__).parent
 
 TAGS_METADATA = [
@@ -44,7 +55,34 @@ app = FastAPI(
     redoc_url=None,
 )
 
-init_db()
+
+@app.on_event("startup")
+def on_startup() -> None:
+    # Configure structured logging once at startup
+    configure_logging()
+    logger = get_logger("qr_forge.app")
+    logger.info("Application startup: initializing DB and directories")
+
+    # Ensure asset directories exist (moved out of import-time side-effects)
+    created = ensure_dirs(settings)
+    for p in created:
+        logger.info("Ensured directory exists: %s", str(p))
+
+    # Initialize DB (safe no-op if already configured for tests)
+    try:
+        init_db()
+    except Exception:
+        logger.exception("init_db() raised an exception during startup")
+
+    # Instrument Prometheus metrics if library present
+    if Instrumentator is not None:
+        try:
+            Instrumentator().instrument(app).expose(app)
+            logger.info("Prometheus instrumentation enabled (exposes /metrics)")
+        except Exception:
+            logger.exception("Failed to enable Prometheus instrumentation")
+
+
 app.include_router(auth.router)
 app.include_router(user.router)
 app.include_router(qr.router)
