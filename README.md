@@ -49,8 +49,10 @@ SECRET_KEY=change-me
 ACCESS_TOKEN_EXPIRE_MINUTES=720
 ALGORITHM=HS256
 
-# Database (default points to Azure App Service persistent storage)
-DATABASE_URL=sqlite:///home/site/wwwroot/qrcodes.db
+# Database
+POSTGRES_URL=postgresql://<user>:<password>@<host>:5432/<db>  # optional; recommended for production
+# Falls back to SQLite when POSTGRES_URL is unset
+DATABASE_URL=sqlite:////home/data/qrcodes.db
 
 # Asset directories
 QR_ASSETS_DIR=/home/site/wwwroot/qr_assets
@@ -102,7 +104,8 @@ Set the following application settings in the App Service (or in your deployment
 - `SECRET_KEY`
 - `ACCESS_TOKEN_EXPIRE_MINUTES`
 - `ALGORITHM`
-- `DATABASE_URL` (e.g., `sqlite:///home/site/wwwroot/qrcodes.db` or your Postgres/MySQL URL)
+- `POSTGRES_URL` (e.g., `postgresql://<user>:<password>@<host>:5432/<db>`) for production
+- `DATABASE_URL` (e.g., `sqlite:////home/data/qrcodes.db`) used when `POSTGRES_URL` is unset
 - `QR_ASSETS_DIR` (e.g., `/home/site/wwwroot/qr_assets`)
 - `QR_TEMP_DIR` (e.g., `/home/site/wwwroot/qr_temp`)
 Directories for asset storage are auto-created at startup.

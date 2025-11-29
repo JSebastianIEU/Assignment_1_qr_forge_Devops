@@ -1,17 +1,11 @@
 from collections.abc import Generator
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from sqlalchemy.engine import make_url
 from sqlmodel import Session, SQLModel, create_engine
 
 from config import settings
-
-
-def _connect_args(database_url: str) -> Dict[str, Any]:
-    if database_url.startswith("sqlite"):
-        return {"check_same_thread": False}
-    return {}
 
 
 def _ensure_sqlite_dir(database_url: str) -> None:
@@ -24,8 +18,11 @@ def _ensure_sqlite_dir(database_url: str) -> None:
 
 def get_engine(database_url: Optional[str] = None):
     url = database_url or settings.database_url
-    _ensure_sqlite_dir(url)
-    return create_engine(url, echo=False, connect_args=_connect_args(url))
+    is_sqlite = url.startswith("sqlite")
+    if is_sqlite:
+        _ensure_sqlite_dir(url)
+    connect_args = {"check_same_thread": False} if is_sqlite else {}
+    return create_engine(url, echo=False, connect_args=connect_args)
 
 
 engine = get_engine()
