@@ -1,0 +1,8 @@
+ruff
+black
+pre-commit
+pytest
+pytest-cov
+coverage
+prometheus-client
+prometheus-fastapi-instrumentator

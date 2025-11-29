@@ -35,8 +35,3 @@ websockets==15.0.1
 psycopg2-binary>=2.9
 prometheus-fastapi-instrumentator==6.1.0
 prometheus-client==0.16.0
-
-# Development / CI tools
-ruff==0.16.3
-black==24.10.0
-pre-commit==3.4.0
