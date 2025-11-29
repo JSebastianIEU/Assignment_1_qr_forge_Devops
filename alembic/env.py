@@ -1,14 +1,14 @@
 from logging.config import fileConfig
 import os
-from sqlalchemy import engine_from_config
+from sqlalchemy import create_engine
 from sqlalchemy import pool
 from alembic import context
 
 from sqlmodel import SQLModel
 
-# allow importing db/get_engine and settings from project
-from db import get_engine
-from config import settings
+# Import project models only to populate metadata; avoid importing application
+# config or db modules which may have side effects (like creating directories).
+import models  # noqa: F401
 
 # this is the Alembic Config object, which provides access to the values within the .ini file in use.
 config = context.config
@@ -17,12 +17,34 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# pick up the metadata from your models
+# pick up the metadata from your models (models import ensures classes are registered)
 target_metadata = SQLModel.metadata
 
-def get_url():
-    # Prefer POSTGRES_URL env var for runtime migrations, fallback to settings.database_url
-    return os.getenv("POSTGRES_URL") or settings.database_url
+
+def get_url() -> str:
+    """Return the DB URL to use for migrations.
+
+    Preference order:
+    1. `POSTGRES_URL` environment variable (used by CI/CD)
+    2. `sqlalchemy.url` value from `alembic.ini`
+    3. `DATABASE_URL` environment variable
+
+    If none are set, raise an explicit error to avoid silent defaults that may
+    attempt to create directories under restricted paths.
+    """
+    url = os.getenv("POSTGRES_URL")
+    if url:
+        return url
+    url = config.get_main_option("sqlalchemy.url")
+    if url:
+        return url
+    url = os.getenv("DATABASE_URL")
+    if url:
+        return url
+    raise RuntimeError(
+        "No database URL configured for Alembic. Set POSTGRES_URL or sqlalchemy.url in alembic.ini"
+    )
+
 
 def run_migrations_offline() -> None:
     url = get_url()
@@ -32,17 +54,24 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
+
     with context.begin_transaction():
         context.run_migrations()
 
+
 def run_migrations_online() -> None:
-    connectable = get_engine(get_url())
+    url = get_url()
+    connect_args = {}
+    if url.startswith("sqlite"):
+        connect_args = {"check_same_thread": False}
+    connectable = create_engine(url, echo=False, connect_args=connect_args)
+
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
+
         with context.begin_transaction():
             context.run_migrations()
+
 
 if context.is_offline_mode():
     run_migrations_offline()
