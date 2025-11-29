@@ -161,3 +161,35 @@ All protected routes require a bearer token (`Authorization: Bearer <token>`).
 ├── report/                # Final report and annex diagrams/mockups
 └── README.md
 ```
+
+## Database migrations
+
+This project uses Alembic to manage schema migrations for the SQLModel models.
+
+- Local / developer workflow:
+  1. Set `POSTGRES_URL` in your shell if you want to run migrations against Postgres (optional). Example (PowerShell):
+	  ```powershell
+	  $env:POSTGRES_URL = "postgresql://<user>:<password>@<host>:5432/<db>"
+	  ```
+  2. Create and activate your virtualenv and install dependencies:
+	  ```bash
+	  python -m venv .venv
+	  source .venv/bin/activate  # or .\.venv\Scripts\Activate.ps1 on Windows
+	  python -m pip install -r requirements.txt
+	  ```
+  3. Generate a migration (if you changed models):
+	  ```bash
+	  alembic revision --autogenerate -m "describe change"
+	  ```
+  4. Apply migrations to the target database:
+	  ```bash
+	  alembic upgrade head
+	  ```
+
+- CI/CD behavior:
+  - The repository CD workflow runs `alembic upgrade head` during deployment. It expects a repository secret named `POSTGRES_URL` to be set (or `DATABASE_URL` used by the app). Ensure the secret contains a valid Postgres connection string for your production database.
+
+Notes:
+- For quick local work you can generate migration scripts using an SQLite URL (for example `sqlite:///alembic_tmp.db`) and commit the generated files. Apply them later against your production Postgres instance once connectivity is available.
+- Remember to remove or tighten temporary firewall rules you created to allow your developer IP when finished (or prefer a private connectivity solution like Private Link or managed identities).
+
