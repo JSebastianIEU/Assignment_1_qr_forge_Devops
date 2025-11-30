@@ -133,58 +133,6 @@ def metrics():
     return PlainTextResponse(content=data, media_type=CONTENT_TYPE_LATEST)
 
 
-def _parse_kv_ref(val: str):
-    """Parse App Service Key Vault reference syntax from an environment value.
-
-    Examples: "@Microsoft.KeyVault(VaultName=kv-name;SecretName=SECRET)"
-    Returns a `(vault_name, secret_name)` tuple or `None` when not matched.
-    """
-    if not val:
-        return None
-    m = re.match(
-        r"@Microsoft\.KeyVault\(VaultName=(?P<v>[^;\)]+);SecretName=(?P<s>[^\)]+)\)",
-        val,
-    )
-    if not m:
-        return None
-    return m.group("v"), m.group("s")
-
-
-def _resolve_postgres_from_keyvault(logger: "logging.Logger") -> None:
-    """If POSTGRES_URL is a Key Vault reference, attempt to resolve it.
-
-    This is kept separate to reduce `app_lifespan` complexity and to make
-    the logic easier to unit-test.
-    """
-    pg_env = os.environ.get("POSTGRES_URL") or os.environ.get("DATABASE_URL")
-    parsed = _parse_kv_ref(pg_env)
-    if not parsed:
-        return
-
-    vault_name, secret_name = parsed
-    try:
-        # Import lazily so environments without Azure SDK can still import app
-        from azure.identity import DefaultAzureCredential
-        from azure.keyvault.secrets import SecretClient
-
-        credential = DefaultAzureCredential()
-        vault_url = f"https://{vault_name}.vault.azure.net"
-        client = SecretClient(vault_url=vault_url, credential=credential)
-        secret = client.get_secret(secret_name)
-        os.environ["POSTGRES_URL"] = secret.value
-        logger.info(
-            "Loaded POSTGRES_URL from Key Vault '%s' (secret '%s')",
-            vault_name,
-            secret_name,
-        )
-    except ImportError:
-        logger.warning(
-            "Azure SDK not available; cannot resolve Key Vault secrets at runtime"
-        )
-    except Exception:
-        logger.exception("Failed to fetch POSTGRES_URL from Key Vault '%s'", vault_name)
-
-
 def _setup_application_insights(app: FastAPI, logger: "logging.Logger") -> None:
     """Attempt to enable Application Insights/OpenTelemetry instrumentation.
 
@@ -254,14 +202,6 @@ async def app_lifespan(app: FastAPI):
     created = ensure_dirs(settings)
     for p in created:
         logger.info("Ensured directory exists: %s", str(p))
-
-    # Resolve POSTGRES_URL Key Vault references (if present)
-    try:
-        _resolve_postgres_from_keyvault(logger)
-    except Exception:
-        logger.exception(
-            "Unexpected error while attempting to resolve POSTGRES_URL from Key Vault"
-        )
 
     try:
         init_db()
@@ -389,7 +329,7 @@ def health() -> dict:
         from app.db import engine
 
         with engine.connect() as conn:
-            conn.execute("SELECT 1")
+            conn.exec_driver_sql("SELECT 1")
         return {"status": "ok"}
     except SQLAlchemyError:
         return PlainTextResponse(
