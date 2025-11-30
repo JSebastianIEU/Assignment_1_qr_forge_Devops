@@ -71,7 +71,7 @@ jobs:
         run: docker build -t qr_forge:ci .
 
       - name: Trivy scan (image)
-        uses: aquasecurity/trivy-action@v1
+        uses: aquasecurity/trivy-action@0.21.0
         with:
           image-ref: qr_forge:ci
           format: 'json'

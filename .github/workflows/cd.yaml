@@ -55,7 +55,7 @@ jobs:
           IMAGE="${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.AZURE_WEBAPP_NAME }}:${{ env.IMAGE_TAG }}"
           az acr login --name ${{ secrets.ACR_NAME }}
           docker pull "$IMAGE"
-          docker run --rm -e POSTGRES_URL="${{ secrets.POSTGRES_URL }}" "$IMAGE" alembic upgrade head
+          docker run --rm --entrypoint "" -e POSTGRES_URL="${{ secrets.POSTGRES_URL }}" "$IMAGE" sh -c "alembic upgrade head"
 
       - name: Smoke test production
         run: |
