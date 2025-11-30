@@ -1,92 +1,80 @@
-# Assignment Report
+# Configuration and Deployment Report – QR Forge (DevOps Assignment)
 
-This report summarises the improvements made to the `Assignment_1_qr_forge_Devops` project to meet IE University BCSAI DevOps rubric requirements.
+Author: [Your Name]  
+Date: [Current Date]
 
-## Rubric mapping
+## 1. Azure Infrastructure
 
-- Code quality: replaced startup events with lifespan, added type hints, removed prints, added structured logging.
-- Security: Key Vault-aware configuration; CI includes Trivy scanning; CD validates Key Vault secret presence and uses Key Vault reference for App Service.
-- Testing: added DB-failure and Alembic import tests; CI produces coverage.xml and enforces threshold >=70%.
-- CI/CD: added `ci.yaml` and `cd.yaml` with matrix testing, caching, Trivy, staging slot deploy & swap, migration step.
-- Observability: OpenTelemetry packages included; Prometheus `/metrics`; sample Grafana dashboard and Prometheus config.
+### 1.1 Azure Container Registry (ACR)
+- Created ACR `jsebastianacr` (RG: `BCSAI2025-DEVOPS-STUDENTS-A`, Region: West Europe, SKU: Basic B1).
+- Admin user enabled for direct auth; login server: `jsebastianacr.azurecr.io`.
 
-## Screenshots and evidence
+### 1.2 Azure Web App for Containers
+- Web App name: `jsebastianqrapp` (Linux, Region: West Europe, Plan: `ASP-jsebastianqrapp`, SKU: Basic B1).
+- Deployment source: ACR `jsebastianacr`, image `qr-app`, tag `latest`, startup port 80.
+- Public URL: `https://jsebastianqrapp.azurewebsites.net` (or the regional host if provided by Azure).
 
-- CI run: see `.github/workflows/ci.yaml` artifacts for `coverage.xml` and `trivy-report.json` (uploaded by pipeline).
-- CD run: logs show ACR push, staging deployment, smoke tests and swap (actions upload Trivy report).
-- Grafana dashboard: `monitoring/grafana-dashboard.json`
+### 1.3 Identity and ACR Pull
+- User Assigned Managed Identity: `ua-id-92af` (RG: `BCSAI2025-DEVOPS-STUDENTS-A`).
+- Assigned to the Web App and granted `AcrPull` on `jsebastianacr` to pull images securely without embedded credentials.
 
-## Change list (high level)
+## 2. Application Settings (App Service)
+Configured in Web App → Configuration → Application Settings:
 
-- Reworked `Dockerfile` to be multi-stage, non-root and include a healthcheck.
-- Introduced CI and CD workflows implementing quality, security, and deployment requirements.
-- Updated `app.py` health endpoint to check DB connectivity and use lifespan startup.
-- Improved `db.py` to use connection pooling and SSL mode enforcement for Postgres.
-- Added tests to improve coverage and detect migration/env issues in CI.
+| Key | Value |
+| --- | ----- |
+| `SECRET_KEY` | (secure value) |
+| `ALGORITHM` | `HS256` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `10080` |
+| `POSTGRES_URL` | `postgresql://qradmin:JSebastian2004*@jsebastianqrdb.postgres.database.azure.com:5432/postgres` |
+| `DATABASE_URL` | `sqlite:////home/app/data/qrcodes.db` (fallback) |
+| `QR_ASSETS_DIR` | `/home/app/data/qr_assets` |
+| `QR_TEMP_DIR` | `/home/app/data/qr_temp` |
+| `PYTHONUNBUFFERED` | `1` |
+| `WEBSITES_ENABLE_APP_SERVICE_STORAGE` | `false` |
 
-## How to validate locally
+Writable paths are under `/home/app/data` to allow SVG/PNG generation and local SQLite fallback.
 
-1. Run tests and generate coverage:
-```powershell
-python -m venv .venv; . .venv\Scripts\Activate.ps1
+## 3. CI/CD Overview
+
+- **CI (`.github/workflows/ci.yaml`)**: Python 3.11, installs deps (runtime + dev), runs ruff/black checks, pytest with coverage, builds a test image, runs Trivy scan, and performs a container smoke test with a writable SQLite URL.
+- **CD (`.github/workflows/cd.yaml`)**: On push to `main` or manual trigger. Builds/pushes image to ACR, sets `POSTGRES_URL` on the Web App, runs Alembic migrations inside the built image, deploys the image, smoke-tests `/health`, and verifies production URL resolved from Azure CLI.
+
+## 4. Container and Runtime
+
+- Dockerfile is multi-stage, non-root `app` user, healthcheck enabled. Entry point runs `uvicorn app.server:app` (migrations handled in CD).
+- Default writable locations: DB at `~/data/qrcodes.db`, assets at `~/data/qr_assets`, temp at `~/data/qr_temp` (override via env vars above).
+
+## 5. How to run locally
+
+```bash
+python -m venv .venv
+source .venv/bin/activate  # or .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt -r requirements-dev.txt
-pytest --junitxml=tests/results.xml --cov=./ --cov-report=xml:coverage.xml
+uvicorn app.main:app --reload
+# UI: http://127.0.0.1:8000/ | Docs: http://127.0.0.1:8000/docs
 ```
 
-2. Build and run the container locally:
-```powershell
-docker build -t qrapp:local .
-docker run -e POSTGRES_URL=sqlite:///:memory: -p 8000:8000 qrapp:local
-curl http://localhost:8000/health
+To run with Postgres locally:
+```bash
+export POSTGRES_URL="postgresql://user:pass@host:5432/dbname"
+uvicorn app.main:app --reload
 ```
-# Sprint Report – DevOps improvements
 
-This document summarises the work done to bring the project to a professional DevOps standard and to meet the Assignment 2 rubric.
+## 6. Alembic migrations
 
-## Summary of improvements (high-level)
+```bash
+alembic revision --autogenerate -m "describe change"
+alembic upgrade head
+```
+CD also runs `alembic upgrade head` using the built image and `POSTGRES_URL` secret.
 
-- Code quality: added linting (`ruff`) and formatting (`black`) integration, pre-commit hooks, and small refactors to centralise configuration and move business logic into `services/`.
-- Tests & coverage: comprehensive unit and integration test-suite. Coverage gate enforced in CI (`--fail-under=70`). Local coverage: ~92%.
-- CI: GitHub Actions runs lint, tests, coverage, and uploads `coverage.xml` and `tests/results.xml` artifacts.
-- CD: multi-stage Docker image built and pushed to ACR, migrations executed inside the deployed image, and a post-deploy smoke test probes `/health` to verify the deployment.
-- Production hygiene: runtime image does not include test/dev packages; `requirements-dev.txt` holds dev tooling.
-- Monitoring: `/metrics` endpoint exposed using `prometheus_client`. `monitoring/` contains Prometheus config, docker-compose and a sample Grafana dashboard JSON.
+## 7. Validations performed
+- All tests pass locally: `pytest` (30 tests).
+- CI smoke test runs the container with `DATABASE_URL=sqlite:///tmp/qrcodes.db` to avoid permission issues.
+- CD smoke test probes `/health` after deployment.
 
-## Mapping to rubric
-
-- Code quality & refactoring (25%): modular services, pre-commit, ruff/black, reduced side-effects at import-time, module docstrings added to key modules.
-- Testing & coverage (20%): tests pass locally, coverage ~92%, CI enforces >=70% coverage and uploads test artifacts.
-- CI (20%): CI runs lint, tests, coverage gate, and builds test image. Cache is configured for pip wheels.
-- Deployment & containerization (20%): Dockerfile is multi-stage, uses non-root `app` user, includes `HEALTHCHECK`, and excludes dev/test deps; CD runs migrations inside the image and performs a smoke test.
-- Monitoring & docs (15%): `/metrics` and `/health` endpoints present; Prometheus and Grafana example configs included; README updated with usage and CI/CD details.
-
-## Automation & safety features added
-
-- `requirements-dev.txt` created and CI updated to install dev deps only for testing and linting.
-- Docker multi-stage build to keep final image minimal and secure.
-- Alembic migrations run from the production image during CD to guarantee parity between migration code and deployed code.
-- CD validates `POSTGRES_URL` secret early and runs a post-deploy HTTP smoke test against `/health`.
-- Pre-commit configured to run ruff and black to ensure consistent style before committing.
-
-## Monitoring and observability
-
-- Metrics: `qr_forge_requests_total` (Counter) and `qr_forge_request_latency_seconds` (Histogram) are recorded by middleware; `/metrics` returns Prometheus text exposition.
-- Grafana: `monitoring/grafana-dashboard.json` included as a starter dashboard (request count, latency, 5xx rate).
-- Logging: structured logging configured via `core/logging.py`, initialized at startup, controlled via `LOG_LEVEL`.
-
-## How to verify (smoke checklist)
-
-1. Run tests locally and check `coverage.xml` is produced.
-2. Run `docker build -t qr-app:local .` and `docker run -p 8000:80 qr-app:local`.
-3. Visit `http://localhost:8000/health` and `http://localhost:8000/metrics`.
-4. Trigger CI (push to a non-main branch) and confirm lint/tests/coverage pass and artifacts are uploaded.
-5. Push to `main` (or use workflow_dispatch) for CD; confirm deployment and smoke test pass.
-
-## Notes and small trade-offs
-
-- The post-deploy smoke test uses the default Azure Web App URL `https://jsebastianqrapp.azurewebsites.net`. If your app uses a custom domain or slot, adjust the CD workflow accordingly.
-- The Grafana JSON is a minimal example intended for graders; dashboard improvements can be added (panels, templating, alerts).
-
-## Conclusion
-
-The repository now meets the assignment requirements: code quality, automated testing and coverage, CI/CD with safe migrations and smoke tests, container hygiene, monitoring, and documentation. These changes are intended to reach full marks for the DevOps assignment when evaluated against the provided rubric.
+## 8. Final state
+- ACR `jsebastianacr` hosting the `qr-app` image.
+- Web App `jsebastianqrapp` pulling from ACR via managed identity, configured with `POSTGRES_URL` and writable asset/temp dirs.
+- CI/CD pipelines operational; migrations and health checks verified in CD. 

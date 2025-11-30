@@ -19,7 +19,7 @@ load_dotenv()
 
 logger = logging.getLogger("qr_forge.config")
 BASE_DIR = Path(__file__).resolve().parent
-# Prefer the runtime user's home dir for writable defaults (works locally and in Azure App Service containers)
+# Writable defaults under the user's home (works locally and in Azure)
 HOME_DIR = Path.home()
 
 

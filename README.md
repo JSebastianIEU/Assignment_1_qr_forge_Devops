@@ -1,101 +1,124 @@
-# QR Forge
+# QR Forge (DevOps Assignment 1 - Part 2)
 
-QR Forge is a FastAPI application for generating and managing QR codes. This repository has been improved and automated for the DevOps assignment: better code quality, tests, CI/CD, deployment hygiene, monitoring, and documentation.
+Badges: ![CI](https://img.shields.io/badge/ci-passing-brightgreen) ![coverage](https://img.shields.io/badge/coverage-0%25-red)
 
-- Badges: ![CI](https://img.shields.io/badge/ci-passing-brightgreen) ![coverage](https://img.shields.io/badge/coverage-0%25-red)
+QR Forge is a FastAPI application for generating and managing QR codes. This second deliverable builds on Assignment 1 and focuses on DevOps hardening (tests, CI/CD, observability) while keeping the goal: a free, unlimited QR generator that anyone can use.
 
-## Quick highlights
-- Tests: unit + integration tests with coverage; coverage gate enforced (>=70%). Current local coverage: ~92%.
-- CI: GitHub Actions runs lint, tests, coverage, and builds a test Docker image.
-- CD: Builds and pushes multi-stage production image to ACR, runs Alembic migrations inside the image, and deploys to Azure Web App on `main` pushes. Post-deploy smoke test validates `/health`.
-- Production image: multi-stage Dockerfile; non-root `app` user; `HEALTHCHECK` added; runtime image does not include test/dev tooling.
-- Monitoring: `/metrics` endpoint (Prometheus), example `monitoring/docker-compose.monitoring.yml` and a sample Grafana dashboard in `monitoring/grafana-dashboard.json`.
+## Live endpoints
+- Production app: https://jsebastianqrapp.azurewebsites.net
+- Swagger docs: https://jsebastianqrapp.azurewebsites.net/docs
+- Prometheus metrics: https://jsebastianqrapp.azurewebsites.net/metrics
+- Health probe: https://jsebastianqrapp.azurewebsites.net/health
 
-## Key files changed
-- `.github/workflows/ci.yaml` — enterprise CI with coverage gate, trivy scan, caching and matrix testing
-- `.github/workflows/cd.yaml` — deploy to Azure staging slot, run migrations from image, smoke tests and swap
-- `Dockerfile` — multi-stage hardened non-root image with HEALTHCHECK
-- `app.py`, `config.py`, `db.py` — clean startup (lifespan), DB pooling and Key Vault-aware configuration
-- `monitoring/*` — Prometheus + Grafana examples
+## Assignment context
+- Assignment 1 (original build) lives in `Assignment1/`; this README documents the second part where DevOps automation, testing, and cloud deployment were added.
+- Goal of the app stays the same: open, no-limit QR generation for all users (UI + API).
 
+## What you will find
+- Generator UI and API for creating branded QR codes (PNG or SVG) with color, padding, radius, and size controls.
+- Authenticated history, profile, and download flows so users can revisit and export prior QRs.
+- Tests (unit + integration) with a coverage gate (>=70%); local coverage sits around 92%.
+- CI/CD to Azure: hardened multi-stage Docker image, migrations from the built image, staging smoke tests, and production swap.
+- Monitoring via Prometheus `/metrics`, optional local Prom/Grafana stack, and structured logging.
+
+## Page map (UI)
+- `home.html`: landing hero that links to the generator and history.
+- `index.html`: generator workspace with preview, download (SVG/PNG), and history drawer.
+- `history.html`: saved QR list for the signed-in user.
+- `profile.html`: update name/password or delete the account and owned QR codes.
+- `login.html` / `signup.html`: entry points for authentication.
+
+## Repo docs and references
+- Deployment report: REPORT.md (Azure resources, CI/CD flow, validations).
+- Annexed diagrams and wireframes: `report/annex/*` (flow, sequence, ERD, mockups).
+- Monitoring assets: `monitoring/docker-compose.monitoring.yml` and `monitoring/grafana-dashboard.json`.
+
+## Quick highlights (DevOps focus)
+- Tests: unit + integration with enforced coverage gate (>=70%).
+- CI: GitHub Actions runs ruff/black checks, tests, coverage, and builds a test Docker image.
+- CD: Builds and pushes the multi-stage image to ACR, runs Alembic migrations inside the image, deploys to Azure Web App, and smoke-tests `/health`.
+- Container: multi-stage Dockerfile, non-root `app` user, `HEALTHCHECK`, runtime image excludes dev/test tooling.
+- Monitoring: Prometheus `/metrics` endpoint plus optional local Prometheus + Grafana stack.
+
+## Key files (high-signal)
+- `.github/workflows/ci.yaml` - CI with caching, lint/test/coverage gate, Trivy scan, and image build.
+- `.github/workflows/cd.yaml` - build/push to ACR, run migrations from the image, deploy to Azure Web App, smoke-test.
+- `Dockerfile` - multi-stage, non-root image with healthcheck and lean runtime stage.
+- `app/main.py`, `app/config.py`, `app/db.py` - FastAPI app factory, settings, and SQLModel engine/session factory.
+- `monitoring/` - Prometheus compose file and Grafana dashboard JSON.
 
 ## Prerequisites
-- Python **3.11+** installed and on your PATH
-- Git (optional but recommended)
-- PowerShell or a Unix-like shell (commands provided for both Windows and macOS/Linux)
+- Python 3.11+ on PATH
+- Git (recommended)
+- PowerShell or a Unix-like shell
 
-## Getting started
-
-### 1. Clone the repository
+## Run locally
+1) Clone
 ```bash
-# HTTPS
 git clone https://github.com/your-account/assignment_1_qr_forge_devops.git
 cd assignment_1_qr_forge_devops
 ```
 
-### 2. Create & activate a virtual environment
+2) Virtual environment
 ```bash
 # Windows PowerShell
 python -m venv .venv
 . .venv\Scripts\Activate.ps1
 
-# macOS / Linux (bash/zsh)
+# macOS / Linux
 python -m venv .venv
 source .venv/bin/activate
 ```
-You should see `(.venv)` in your prompt. To exit later, run `deactivate`.
 
-### 3. Install dependencies
+3) Install dependencies
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. (Optional) Configure environment variables
-Create a `.env` file (or export variables in your shell) to mirror production/Azure App Service:
+4) Environment (optional but recommended)
+Create `.env` (or export variables):
 ```
-# Auth / security
 SECRET_KEY=change-me
 ACCESS_TOKEN_EXPIRE_MINUTES=720
 ALGORITHM=HS256
 
-# Database
-POSTGRES_URL=postgresql://<user>:<password>@<host>:5432/<db>  # optional; recommended for production
-# Falls back to SQLite when POSTGRES_URL is unset
-DATABASE_URL=sqlite:////home/data/qrcodes.db
+# Database (Postgres preferred in prod; SQLite fallback locally)
+POSTGRES_URL=postgresql://<user>:<password>@<host>:5432/<db>
+DATABASE_URL=sqlite:////home/app/data/qrcodes.db
 
-# Asset directories
-QR_ASSETS_DIR=/home/site/wwwroot/qr_assets
-QR_TEMP_DIR=/home/site/wwwroot/qr_temp
+# Asset dirs (auto-created)
+QR_ASSETS_DIR=/home/app/data/qr_assets
+QR_TEMP_DIR=/home/app/data/qr_temp
 ```
-Reasonable defaults are applied when not supplied; directories are created automatically at startup.
 
-### 5. Run the application
+5) Run the app
 ```bash
 uvicorn app.main:app --reload
 ```
 - UI: http://127.0.0.1:8000/
-- API docs (Swagger): http://127.0.0.1:8000/docs
+- Docs: http://127.0.0.1:8000/docs
+- Metrics: http://127.0.0.1:8000/metrics
 
-Create an account via the UI or through the `/api/auth/signup` endpoint, then explore the generator, history, and profile sections.
+Create an account via the UI or `/api/auth/signup`, then try the generator, history, and profile sections.
 
-### 6. Run the tests
+6) Tests
 ```bash
 pytest
 ```
-The test-suite spins up an in-memory SQLite database and overrides the QR asset directories, so it never touches your local data files.
+Tests use an in-memory SQLite database and temp asset folders, so your local data is untouched.
 
-### 7. Build & run with Docker
+7) Docker
 ```bash
 docker build -t qr-app .
 docker run -p 8000:8000 qr-app
 ```
 - UI: http://127.0.0.1:8000/
-- API docs: http://127.0.0.1:8000/docs
+- Docs: http://127.0.0.1:8000/docs
 
-### 8. Useful maintenance commands
+8) Useful maintenance commands
 ```bash
-# format & lint (optional if you add tooling)
+# lint/format (if installed)
 python -m ruff check .
 python -m ruff format .
 
@@ -104,57 +127,37 @@ Remove-Item generated_svgs/* -Force
 Remove-Item generated_pngs/* -Force
 ```
 
-## CI pipeline
-- GitHub Actions workflow (`.github/workflows/ci.yaml`) runs on every push (except `main`) and on PRs to `main`.
-- Steps: checkout, set up Python 3.11, install deps, run `coverage run -m pytest` then `coverage report --fail-under=70`, and build the Docker image (`docker build -t qr-app-ci .`).
-- Coverage gate: pipeline fails if coverage < 70%.
+## CI / CD overview
+- CI (`.github/workflows/ci.yaml`): runs ruff + black (check), unit/integration tests, produces `coverage.xml` and `tests/results.xml`, enforces `--fail-under=70`, builds a test Docker image, and runs Trivy scan.
+- CD (`.github/workflows/cd.yaml`): on `main` pushes or manual trigger; builds and pushes the image to Azure Container Registry, runs Alembic migrations inside the image with `POSTGRES_URL`, deploys to Azure Web App, and smoke-tests `/health`.
+- Azure resources (from REPORT.md): ACR `jsebastianacr` and Web App `jsebastianqrapp` (Linux, Basic B1) pulling the image via managed identity.
 
-## CI / CD (summary)
-- CI (`.github/workflows/ci.yaml`): runs lint (ruff + black check), unit and integration tests, produces `coverage.xml` and `tests/results.xml` artifacts, enforces a coverage gate `--fail-under=70`, and builds a test Docker image.
-- CD (`.github/workflows/cd.yaml`): runs on `push` to `main` and can be triggered manually; it builds and pushes the Docker image to Azure Container Registry, runs Alembic migrations from the built image (using the `POSTGRES_URL` secret) and then deploys the image to the configured Azure Web App.
-
-## Monitoring & Metrics
-
-This project exposes Prometheus-compatible metrics at the unauthenticated endpoint `/metrics` when the `prometheus_fastapi_instrumentator` package is installed. Metrics include:
-
-- Request count per endpoint
-- Request latency histogram per endpoint
-- HTTP status code counters
-
-To run Prometheus and Grafana locally for simple exploration, use the files in `monitoring/`:
-
-```bash
-# Start the app (locally or via the image) and then in another shell:
-docker compose -f monitoring/docker-compose.monitoring.yml up
-```
-
-Prometheus will be available at http://localhost:9090 and Grafana at http://localhost:3000 (admin/admin). The Prometheus config scrapes `/metrics` from a service named `app` on port 8000 by default.
+## Monitoring and metrics
+- `/metrics` exposes Prometheus-compatible counters and histograms (request count, latency, status codes).
+- Local observability: `docker compose -f monitoring/docker-compose.monitoring.yml up` after starting the app.
+  - Prometheus: http://localhost:9090
+  - Grafana: http://localhost:3000 (admin/admin) using `monitoring/grafana-dashboard.json`.
 
 ## Logging
+Structured logging is enabled. Set `LOG_LEVEL` (`DEBUG`, `INFO`, `WARNING`, `ERROR`) to adjust verbosity. Logs include timestamp, level, module, and message.
 
-Structured logging is configured at application startup. Use the environment variable `LOG_LEVEL` to control verbosity (e.g. `DEBUG`, `INFO`, `WARNING`, `ERROR`). Logs include: timestamp, level, module and message.
-
-## Pre-commit and developer tooling
-
-This repository includes `ruff`, `black` and a `.pre-commit-config.yaml`. To enable hooks locally:
-
+## Pre-commit and tooling
 ```powershell
 pip install pre-commit
 pre-commit install
 ```
+Hooks run ruff and black (check mode) on commit.
 
-The pre-commit hooks run ruff and black (check mode) on commit.
-
-## Azure App Service configuration
-Set the following application settings in the App Service (or in your deployment slot):
+## Azure App Service settings
+Set in the Web App (or slot):
 - `SECRET_KEY`
 - `ACCESS_TOKEN_EXPIRE_MINUTES`
 - `ALGORITHM`
-- `POSTGRES_URL` (e.g., `postgresql://<user>:<password>@<host>:5432/<db>`) for production
-- `DATABASE_URL` (e.g., `sqlite:////home/data/qrcodes.db`) used when `POSTGRES_URL` is unset
-- `QR_ASSETS_DIR` (e.g., `/home/site/wwwroot/qr_assets`)
-- `QR_TEMP_DIR` (e.g., `/home/site/wwwroot/qr_temp`)
-Directories for asset storage are auto-created at startup.
+- `POSTGRES_URL` (e.g. `postgresql://<user>:<password>@<host>:5432/<db>`)
+- `DATABASE_URL` (SQLite fallback)
+- `QR_ASSETS_DIR` (e.g. `/home/app/data/qr_assets`)
+- `QR_TEMP_DIR` (e.g. `/home/app/data/qr_temp`)
+Asset directories are created automatically at startup.
 
 ## API overview
 | Method | Endpoint | Description |
@@ -174,7 +177,7 @@ Directories for asset storage are auto-created at startup.
 
 All protected routes require a bearer token (`Authorization: Bearer <token>`).
 
-## Screenshots & diagrams
+## Screenshots and diagrams
 | Resource | Location |
 | -------- | -------- |
 | Home wireframe | `report/annex/wireframe-mockup/Home.png` |
@@ -190,22 +193,22 @@ All protected routes require a bearer token (`Authorization: Bearer <token>`).
 ```
 .
 +-- app/                   # Application package
-¦   +-- main.py            # FastAPI app + route registration
-¦   +-- server.py          # ASGI entrypoint (uvicorn app.server:app)
-¦   +-- config.py          # Environment configuration
-¦   +-- db.py              # SQLModel engine + session factory
-¦   +-- models.py          # SQLModel tables (users, QR items)
-¦   +-- schemas.py         # Pydantic models / request & response schemas
-¦   +-- core/              # Auth/security helpers (password hashing, JWT)
-¦   +-- routers/           # Modular API routers (auth, users, qr, export)
-¦   +-- services/          # QR rendering utilities (SVG/PNG generation)
-¦   +-- monitoring/        # Metrics/observability helpers
-¦   +-- home/              # Static marketing pages
-¦   +-- static/            # CSS/JS/assets used in the UI
-¦   +-- assets/            # Shared icons used in the UI
-¦   +-- templates/         # HTML templates rendered by FastAPI
-¦   +-- generated_svgs/    # Runtime SVG assets (ignored by git)
-¦   +-- generated_pngs/    # Runtime PNG assets (ignored by git)
+|   +-- main.py            # FastAPI app + route registration
+|   +-- server.py          # ASGI entrypoint (uvicorn app.server:app)
+|   +-- config.py          # Environment configuration
+|   +-- db.py              # SQLModel engine + session factory
+|   +-- models.py          # SQLModel tables (users, QR items)
+|   +-- schemas.py         # Pydantic models / request & response schemas
+|   +-- core/              # Auth/security helpers (password hashing, JWT)
+|   +-- routers/           # Modular API routers (auth, users, qr, export)
+|   +-- services/          # QR rendering utilities (SVG/PNG generation)
+|   +-- monitoring/        # Metrics/observability helpers
+|   +-- home/              # Static marketing pages
+|   +-- static/            # CSS/JS/assets used in the UI
+|   +-- assets/            # Shared icons used in the UI
+|   +-- templates/         # HTML templates rendered by FastAPI
+|   +-- generated_svgs/    # Runtime SVG assets (ignored by git)
+|   +-- generated_pngs/    # Runtime PNG assets (ignored by git)
 +-- alembic/               # Alembic migrations
 +-- alembic.ini
 +-- Dockerfile
@@ -219,34 +222,31 @@ All protected routes require a bearer token (`Authorization: Bearer <token>`).
 ```
 
 ## Database migrations
-
 This project uses Alembic to manage schema migrations for the SQLModel models.
 
-- Local / developer workflow:
-  1. Set `POSTGRES_URL` in your shell if you want to run migrations against Postgres (optional). Example (PowerShell):
-	  ```powershell
-	  $env:POSTGRES_URL = "postgresql://<user>:<password>@<host>:5432/<db>"
-	  ```
+- Local workflow:
+  1. Set `POSTGRES_URL` if running against Postgres (optional). Example (PowerShell):
+     ```powershell
+     $env:POSTGRES_URL = "postgresql://<user>:<password>@<host>:5432/<db>"
+     ```
   2. Create and activate your virtualenv and install dependencies:
-	  ```bash
-	  python -m venv .venv
-	  source .venv/bin/activate  # or .\.venv\Scripts\Activate.ps1 on Windows
-	  python -m pip install -r requirements.txt
-	  ```
+     ```bash
+     python -m venv .venv
+     source .venv/bin/activate  # or .\.venv\Scripts\Activate.ps1 on Windows
+     python -m pip install -r requirements.txt
+     ```
   3. Generate a migration (if you changed models):
-	  ```bash
-	  alembic revision --autogenerate -m "describe change"
-	  ```
+     ```bash
+     alembic revision --autogenerate -m "describe change"
+     ```
   4. Apply migrations to the target database:
-	  ```bash
-	  alembic upgrade head
-	  ```
+     ```bash
+     alembic upgrade head
+     ```
 
 - CI/CD behavior:
-  - The repository CD workflow runs `alembic upgrade head` during deployment. It expects a repository secret named `POSTGRES_URL` to be set (or `DATABASE_URL` used by the app). Ensure the secret contains a valid Postgres connection string for your production database.
+  - The CD workflow runs `alembic upgrade head` during deployment using the built image. It expects `POSTGRES_URL` (or `DATABASE_URL`) to be configured as a secret.
 
 Notes:
 - For quick local work you can generate migration scripts using an SQLite URL (for example `sqlite:///alembic_tmp.db`) and commit the generated files. Apply them later against your production Postgres instance once connectivity is available.
-- Remember to remove or tighten temporary firewall rules you created to allow your developer IP when finished (or prefer a private connectivity solution like Private Link or managed identities).
-
-
+- Remember to remove or tighten any temporary firewall rules after running migrations, or prefer managed identities/private connectivity where possible.
