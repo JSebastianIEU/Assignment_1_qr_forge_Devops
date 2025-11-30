@@ -19,7 +19,8 @@ load_dotenv()
 
 logger = logging.getLogger("qr_forge.config")
 BASE_DIR = Path(__file__).resolve().parent
-HOME_DIR = Path(os.getenv("HOME", "/home"))
+# Prefer the runtime user's home dir for writable defaults (works locally and in Azure App Service containers)
+HOME_DIR = Path.home()
 
 
 @dataclass
@@ -43,7 +44,7 @@ class Settings:
     )
     database_url: str = field(
         default_factory=lambda: os.getenv(
-            "DATABASE_URL", f"sqlite:///{(BASE_DIR / 'data' / 'qrcodes.db').as_posix()}"
+            "DATABASE_URL", f"sqlite:///{(HOME_DIR / 'data' / 'qrcodes.db').as_posix()}"
         )
     )
     assets_dir: Path = field(
