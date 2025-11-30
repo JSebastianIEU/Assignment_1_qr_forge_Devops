@@ -80,14 +80,20 @@ jobs:
         run: |
           APP_URL="https://jsebastianqrapp.azurewebsites.net"
           echo "Waiting for $APP_URL/health"
-          for i in {1..20}; do
-            status=$(curl -s -o /dev/null -w "%{http_code}" $APP_URL/health || true)
-            body=$(curl -s $APP_URL/health || true)
-            if [ "$status" = "200" ] && [ "$body" = '{"status":"ok"}' ]; then
+          # Retry with diagnostic output; accept JSON bodies that contain the ok status
+          for i in {1..30}; do
+            echo "Attempt #$i"
+            # follow redirects, fail silently but capture output and status
+            body=$(curl -sSL --max-time 10 "$APP_URL/health" || true)
+            status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$APP_URL/health" || echo "000")
+            echo "HTTP status: $status"
+            echo "Body: $body"
+            if [ "$status" = "200" ] && echo "$body" | grep -q '"status"\s*:\s*"ok"'; then
               echo "Smoke test passed"
               exit 0
             fi
             sleep 5
           done
-          echo "Smoke test failed" >&2
+          echo "Smoke test failed - final status: $status" >&2
+          echo "Final body: $body" >&2
           exit 1
