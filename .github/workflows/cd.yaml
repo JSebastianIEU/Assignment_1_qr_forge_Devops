@@ -78,7 +78,13 @@ jobs:
 
       - name: Smoke test deployed app
         run: |
-          APP_URL="https://jsebastianqrapp.azurewebsites.net"
+          # Try to discover the actual host name from Azure (requires successful `azure/login` earlier)
+          HOST=$(az webapp list --query "[?name=='jsebastianqrapp'] | [0].defaultHostName" -o tsv || true)
+          if [ -z "$HOST" ] || [ "$HOST" = "null" ]; then
+            # fallback to the simple default used in older workflows
+            HOST="jsebastianqrapp.azurewebsites.net"
+          fi
+          APP_URL="https://$HOST"
           echo "Waiting for $APP_URL/health"
           # Retry with diagnostic output; accept JSON bodies that contain the ok status
           for i in {1..30}; do
@@ -89,7 +95,7 @@ jobs:
             echo "HTTP status: $status"
             echo "Body: $body"
             if [ "$status" = "200" ] && echo "$body" | grep -q '"status"\s*:\s*"ok"'; then
-              echo "Smoke test passed"
+              echo "Smoke test passed against $APP_URL"
               exit 0
             fi
             sleep 5
