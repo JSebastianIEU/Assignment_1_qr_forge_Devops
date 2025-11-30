@@ -6,10 +6,10 @@ parsed at runtime by `app.py` which will attempt to resolve secrets from
 Azure Key Vault when available).
 """
 
-from dataclasses import dataclass, field
-from functools import lru_cache
 import logging
 import os
+from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 logger = logging.getLogger("qr_forge.config")
+BASE_DIR = Path(__file__).resolve().parent
 
 
 @dataclass
@@ -46,12 +47,12 @@ class Settings:
     )
     assets_dir: Path = field(
         default_factory=lambda: Path(
-            os.getenv("QR_ASSETS_DIR", "/home/site/wwwroot/qr_assets")
+            os.getenv("QR_ASSETS_DIR", str(BASE_DIR / "generated_svgs"))
         )
     )
     temp_dir: Path = field(
         default_factory=lambda: Path(
-            os.getenv("QR_TEMP_DIR", "/home/site/wwwroot/qr_temp")
+            os.getenv("QR_TEMP_DIR", str(BASE_DIR / "generated_pngs"))
         )
     )
     # Optional telemetry and observability configuration
