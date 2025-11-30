@@ -78,10 +78,15 @@ jobs:
 
       - name: Smoke test deployed app
         run: |
-          # Try to discover the actual host name from Azure (requires successful `azure/login` earlier)
-          HOST=$(az webapp list --query "[?name=='jsebastianqrapp'] | [0].defaultHostName" -o tsv || true)
+          echo "== az account show (diagnostic) =="
+          az account show || true
+          echo "== az webapp show (diagnostic) =="
+          az webapp show --name jsebastianqrapp --resource-group BCSAI2025-DEVOPS-STUDENTS-A -o json || true
+
+          # Try to discover the actual host name from Azure using the specific resource group
+          HOST=$(az webapp show --name jsebastianqrapp --resource-group BCSAI2025-DEVOPS-STUDENTS-A --query defaultHostName -o tsv || true)
           if [ -z "$HOST" ] || [ "$HOST" = "null" ]; then
-            # fallback to the simple default used in older workflows
+            echo "WARNING: az could not discover the host for jsebastianqrapp; falling back to workspace default host name"
             HOST="jsebastianqrapp.azurewebsites.net"
           fi
           APP_URL="https://$HOST"
