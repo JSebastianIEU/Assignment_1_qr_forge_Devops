@@ -19,6 +19,7 @@ load_dotenv()
 
 logger = logging.getLogger("qr_forge.config")
 BASE_DIR = Path(__file__).resolve().parent
+HOME_DIR = Path(os.getenv("HOME", "/home"))
 
 
 @dataclass
@@ -42,17 +43,17 @@ class Settings:
     )
     database_url: str = field(
         default_factory=lambda: os.getenv(
-            "DATABASE_URL", "sqlite:////home/data/qrcodes.db"
+            "DATABASE_URL", f"sqlite:///{(BASE_DIR / 'data' / 'qrcodes.db').as_posix()}"
         )
     )
     assets_dir: Path = field(
         default_factory=lambda: Path(
-            os.getenv("QR_ASSETS_DIR", str(BASE_DIR / "generated_svgs"))
+            os.getenv("QR_ASSETS_DIR", str(HOME_DIR / "data" / "qr_assets"))
         )
     )
     temp_dir: Path = field(
         default_factory=lambda: Path(
-            os.getenv("QR_TEMP_DIR", str(BASE_DIR / "generated_pngs"))
+            os.getenv("QR_TEMP_DIR", str(HOME_DIR / "data" / "qr_temp"))
         )
     )
     # Optional telemetry and observability configuration
