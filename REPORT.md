@@ -1,3 +1,44 @@
+# Assignment Report
+
+This report summarises the improvements made to the `Assignment_1_qr_forge_Devops` project to meet IE University BCSAI DevOps rubric requirements.
+
+## Rubric mapping
+
+- Code quality: replaced startup events with lifespan, added type hints, removed prints, added structured logging.
+- Security: Key Vault-aware configuration; CI includes Trivy scanning; CD validates Key Vault secret presence and uses Key Vault reference for App Service.
+- Testing: added DB-failure and Alembic import tests; CI produces coverage.xml and enforces threshold >=70%.
+- CI/CD: added `ci.yaml` and `cd.yaml` with matrix testing, caching, Trivy, staging slot deploy & swap, migration step.
+- Observability: OpenTelemetry packages included; Prometheus `/metrics`; sample Grafana dashboard and Prometheus config.
+
+## Screenshots and evidence
+
+- CI run: see `.github/workflows/ci.yaml` artifacts for `coverage.xml` and `trivy-report.json` (uploaded by pipeline).
+- CD run: logs show ACR push, staging deployment, smoke tests and swap (actions upload Trivy report).
+- Grafana dashboard: `monitoring/grafana-dashboard.json`
+
+## Change list (high level)
+
+- Reworked `Dockerfile` to be multi-stage, non-root and include a healthcheck.
+- Introduced CI and CD workflows implementing quality, security, and deployment requirements.
+- Updated `app.py` health endpoint to check DB connectivity and use lifespan startup.
+- Improved `db.py` to use connection pooling and SSL mode enforcement for Postgres.
+- Added tests to improve coverage and detect migration/env issues in CI.
+
+## How to validate locally
+
+1. Run tests and generate coverage:
+```powershell
+python -m venv .venv; . .venv\Scripts\Activate.ps1
+pip install -r requirements.txt -r requirements-dev.txt
+pytest --junitxml=tests/results.xml --cov=./ --cov-report=xml:coverage.xml
+```
+
+2. Build and run the container locally:
+```powershell
+docker build -t qrapp:local .
+docker run -e POSTGRES_URL=sqlite:///:memory: -p 8000:8000 qrapp:local
+curl http://localhost:8000/health
+```
 # Sprint Report – DevOps improvements
 
 This document summarises the work done to bring the project to a professional DevOps standard and to meet the Assignment 2 rubric.

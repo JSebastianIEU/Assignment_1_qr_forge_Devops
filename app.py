@@ -1,6 +1,12 @@
-﻿from pathlib import Path
+from __future__ import annotations
 
-from fastapi import FastAPI, Request
+import logging
+import os
+import re
+from pathlib import Path
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request, status
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -129,8 +135,118 @@ def metrics():
     return PlainTextResponse(content=data, media_type=CONTENT_TYPE_LATEST)
 
 
-@app.on_event("startup")
-def on_startup() -> None:
+def _parse_kv_ref(val: str):
+    """Parse App Service Key Vault reference syntax from an environment value.
+
+    Examples: "@Microsoft.KeyVault(VaultName=kv-name;SecretName=SECRET)"
+    Returns a `(vault_name, secret_name)` tuple or `None` when not matched.
+    """
+    if not val:
+        return None
+    m = re.match(
+        r"@Microsoft\.KeyVault\(VaultName=(?P<v>[^;\)]+);SecretName=(?P<s>[^\)]+)\)",
+        val,
+    )
+    if not m:
+        return None
+    return m.group("v"), m.group("s")
+
+
+def _resolve_postgres_from_keyvault(logger: "logging.Logger") -> None:
+    """If POSTGRES_URL is a Key Vault reference, attempt to resolve it.
+
+    This is kept separate to reduce `app_lifespan` complexity and to make
+    the logic easier to unit-test.
+    """
+    pg_env = os.environ.get("POSTGRES_URL") or os.environ.get("DATABASE_URL")
+    parsed = _parse_kv_ref(pg_env)
+    if not parsed:
+        return
+
+    vault_name, secret_name = parsed
+    try:
+        # Import lazily so environments without Azure SDK can still import app
+        from azure.identity import DefaultAzureCredential
+        from azure.keyvault.secrets import SecretClient
+
+        credential = DefaultAzureCredential()
+        vault_url = f"https://{vault_name}.vault.azure.net"
+        client = SecretClient(vault_url=vault_url, credential=credential)
+        secret = client.get_secret(secret_name)
+        os.environ["POSTGRES_URL"] = secret.value
+        logger.info(
+            "Loaded POSTGRES_URL from Key Vault '%s' (secret '%s')",
+            vault_name,
+            secret_name,
+        )
+    except ImportError:
+        logger.warning(
+            "Azure SDK not available; cannot resolve Key Vault secrets at runtime"
+        )
+    except Exception:
+        logger.exception("Failed to fetch POSTGRES_URL from Key Vault '%s'", vault_name)
+
+
+def _setup_application_insights(app: FastAPI, logger: "logging.Logger") -> None:
+    """Attempt to enable Application Insights/OpenTelemetry instrumentation.
+
+    Imported lazily because these dependencies are optional in tests and
+    some developer environments.
+    """
+    try:
+        if not settings.app_insights_connection_string:
+            return
+
+        from opentelemetry import trace
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
+        resource = Resource.create({"service.name": "qr-forge"})
+        provider = TracerProvider(resource=resource)
+
+        # Try to create an exporter only if available; exporter packages are
+        # optional in some environments so we handle ImportError gracefully.
+        try:
+            from azure.monitor.opentelemetry.exporter import (
+                AzureMonitorTraceExporter,
+            )
+
+            exporter = AzureMonitorTraceExporter(
+                connection_string=settings.app_insights_connection_string
+            )
+            provider.add_span_processor(BatchSpanProcessor(exporter))
+        except Exception:
+            # No exporter available; continue without span export
+            logger.debug("No OTLP/Azure exporter available; skipping exporter setup")
+
+        trace.set_tracer_provider(provider)
+        FastAPIInstrumentor().instrument_app(app)
+        logger.info("Application Insights instrumentation enabled")
+    except Exception:
+        logger.exception("Failed to enable Application Insights instrumentation")
+
+
+def _setup_prometheus_instrumentator(app: FastAPI, logger: "logging.Logger") -> None:
+    try:
+        from prometheus_fastapi_instrumentator import Instrumentator
+
+        Instrumentator().instrument(app).expose(app)
+        logger.info("Prometheus instrumentation enabled (exposes /metrics)")
+    except Exception:
+        logger.info(
+            "prometheus_fastapi_instrumentator not available; using builtin metrics"
+        )
+
+
+@asynccontextmanager
+async def app_lifespan(app: FastAPI):
+    """Application lifespan context: configure logging, ensure dirs and DB.
+
+    Replaces the older `on_event('startup')` approach and provides a single
+    async context for startup and shutdown operations.
+    """
     # Configure structured logging once at startup
     configure_logging()
     logger = get_logger("qr_forge.app")
@@ -141,23 +257,30 @@ def on_startup() -> None:
     for p in created:
         logger.info("Ensured directory exists: %s", str(p))
 
-    # Initialize DB (safe no-op if already configured for tests)
+    # Resolve POSTGRES_URL Key Vault references (if present)
+    try:
+        _resolve_postgres_from_keyvault(logger)
+    except Exception:
+        logger.exception(
+            "Unexpected error while attempting to resolve POSTGRES_URL from Key Vault"
+        )
+
     try:
         init_db()
     except Exception:
         logger.exception("init_db() raised an exception during startup")
 
-    # Attempt to use optional instrumentator if installed (additional metrics)
-    try:
-        from prometheus_fastapi_instrumentator import Instrumentator
+    # Telemetry and metrics
+    _setup_application_insights(app, logger)
+    _setup_prometheus_instrumentator(app, logger)
 
-        Instrumentator().instrument(app).expose(app)
-        logger.info("Prometheus instrumentation enabled (exposes /metrics)")
-    except Exception:
-        # If not installed, fallback to the built-in prometheus_client metrics above
-        logger.info(
-            "prometheus_fastapi_instrumentator not available; using builtin metrics"
-        )
+    try:
+        yield
+    finally:
+        logger.info("Application shutdown completed")
+
+
+app.router.lifespan_context = app_lifespan
 
 
 app.include_router(auth.router)
@@ -256,4 +379,27 @@ def signup_page(request: Request) -> HTMLResponse:
 
 @app.get("/health", summary="Simple health check")
 def health() -> dict:
-    return {"status": "ok"}
+    """Health check that reflects DB connectivity.
+
+    Attempts a short-lived connection to the configured database engine
+    and returns 200 when healthy or 503 when the DB cannot be reached.
+    """
+    from sqlalchemy.exc import SQLAlchemyError
+
+    try:
+        # perform a quick connection test
+        from db import engine
+
+        with engine.connect() as conn:
+            conn.execute("SELECT 1")
+        return {"status": "ok"}
+    except SQLAlchemyError:
+        return PlainTextResponse(
+            content="DB connectivity failure",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+    except Exception:
+        return PlainTextResponse(
+            content="Health check failed",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )

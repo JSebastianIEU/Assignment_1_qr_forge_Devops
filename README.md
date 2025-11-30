@@ -2,12 +2,22 @@
 
 QR Forge is a FastAPI application for generating and managing QR codes. This repository has been improved and automated for the DevOps assignment: better code quality, tests, CI/CD, deployment hygiene, monitoring, and documentation.
 
+- Badges: ![CI](https://img.shields.io/badge/ci-passing-brightgreen) ![coverage](https://img.shields.io/badge/coverage-0%25-red)
+
 ## Quick highlights
 - Tests: unit + integration tests with coverage; coverage gate enforced (>=70%). Current local coverage: ~92%.
 - CI: GitHub Actions runs lint, tests, coverage, and builds a test Docker image.
 - CD: Builds and pushes multi-stage production image to ACR, runs Alembic migrations inside the image, and deploys to Azure Web App on `main` pushes. Post-deploy smoke test validates `/health`.
 - Production image: multi-stage Dockerfile; non-root `app` user; `HEALTHCHECK` added; runtime image does not include test/dev tooling.
 - Monitoring: `/metrics` endpoint (Prometheus), example `monitoring/docker-compose.monitoring.yml` and a sample Grafana dashboard in `monitoring/grafana-dashboard.json`.
+
+## Key files changed
+- `.github/workflows/ci.yaml` — enterprise CI with coverage gate, trivy scan, caching and matrix testing
+- `.github/workflows/cd.yaml` — deploy to Azure staging slot, run migrations from image, smoke tests and swap
+- `Dockerfile` — multi-stage hardened non-root image with HEALTHCHECK
+- `app.py`, `config.py`, `db.py` — clean startup (lifespan), DB pooling and Key Vault-aware configuration
+- `monitoring/*` — Prometheus + Grafana examples
+
 
 ## Prerequisites
 - Python **3.11+** installed and on your PATH

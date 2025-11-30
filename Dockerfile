@@ -22,6 +22,10 @@ RUN apt-get update \
 ############################################################
 FROM python:3.11-slim
 
+LABEL org.opencontainers.image.source="https://github.com/JSebastianIEU/Assignment_1_qr_forge_Devops"
+LABEL org.opencontainers.image.description="QR Forge - FastAPI app for generating QR codes"
+LABEL org.opencontainers.image.version="1.0.0"
+
 # Create non-root user
 RUN groupadd --system app && useradd --system --gid app --create-home --home-dir /home/app app
 
@@ -36,9 +40,11 @@ RUN python -m pip install --no-cache-dir --no-index --find-links=/wheels -r requ
 # Copy application code
 COPY . /app
 
-# Ensure asset dirs created at runtime (app startup will also ensure them)
-ENV PORT=80
-EXPOSE 80
+# Ensure the non-root user owns the application directory and asset folders
+RUN chown -R app:app /app /home/app || true
+
+ENV PORT=8000
+EXPOSE 8000
 
 # Use non-root user
 USER app
@@ -46,4 +52,5 @@ USER app
 # Healthcheck to allow container orchestrators to probe readiness
 HEALTHCHECK --interval=30s --timeout=5s --retries=5 CMD curl -f http://localhost:$PORT/health || exit 1
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80"]
+# Entrypoint script: run migrations then start the app with lifespan-managed FastAPI
+ENTRYPOINT ["/bin/sh", "-c", "python -m alembic upgrade head || echo 'migrations failed'; exec uvicorn server:app --host 0.0.0.0 --port $PORT --proxy-headers"]

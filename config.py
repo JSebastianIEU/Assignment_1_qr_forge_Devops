@@ -1,16 +1,33 @@
-import os
+"""Application configuration.
+
+Centralises environment-driven settings. Supports Key Vault-style references
+in environment variables (the App Service Key Vault reference syntax is
+parsed at runtime by `app.py` which will attempt to resolve secrets from
+Azure Key Vault when available).
+"""
+
 from dataclasses import dataclass, field
 from functools import lru_cache
+import logging
+import os
 from pathlib import Path
+from typing import Optional
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
+logger = logging.getLogger("qr_forge.config")
+
 
 @dataclass
 class Settings:
-    """Runtime configuration pulled from environment variables."""
+    """Runtime configuration pulled from environment variables.
+
+    This dataclass centralises environment-driven configuration. It prefers
+    `POSTGRES_URL` (for production) and falls back to `DATABASE_URL` which
+    may point to a local sqlite file for development and tests.
+    """
 
     secret_key: str = field(
         default_factory=lambda: os.getenv("SECRET_KEY", "change-me-in-env")
@@ -19,7 +36,9 @@ class Settings:
         default_factory=lambda: int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "720"))
     )
     algorithm: str = field(default_factory=lambda: os.getenv("ALGORITHM", "HS256"))
-    postgres_url: str | None = field(default_factory=lambda: os.getenv("POSTGRES_URL"))
+    postgres_url: Optional[str] = field(
+        default_factory=lambda: os.getenv("POSTGRES_URL")
+    )
     database_url: str = field(
         default_factory=lambda: os.getenv(
             "DATABASE_URL", "sqlite:////home/data/qrcodes.db"
@@ -35,21 +54,27 @@ class Settings:
             os.getenv("QR_TEMP_DIR", "/home/site/wwwroot/qr_temp")
         )
     )
+    # Optional telemetry and observability configuration
+    app_insights_connection_string: Optional[str] = field(
+        default_factory=lambda: os.getenv("APPINSIGHTS_CONN")
+    )
 
     def __post_init__(self) -> None:
+        # Use POSTGRES_URL when available, otherwise DATABASE_URL
         self.database_url = self.postgres_url or self.database_url
-        # Normalise paths for downstream usage and ensure directories exist
-        # for file writes.
+        if not self.database_url:
+            logger.warning(
+                "No database URL configured; application may not function correctly"
+            )
+        # Normalise paths for downstream usage; directory creation should be
+        # performed at application startup by calling `ensure_dirs(settings)`
         self.assets_dir = Path(self.assets_dir)
         self.temp_dir = Path(self.temp_dir)
-        # Do NOT perform filesystem side-effects at import time. Directory
-        # creation should be performed at application startup by calling
-        # `ensure_dirs(settings)` from `core.bootstrap`.
-        pass
 
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
+    """Return cached Settings instance."""
     return Settings()
 
 

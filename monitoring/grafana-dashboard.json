@@ -1,4 +1,16 @@
 {
+  "title": "QR Forge Overview",
+  "panels": [
+    {"type": "stat", "title": "Uptime", "targets": []},
+    {"type": "graph", "title": "Request rate (rate)", "targets": []},
+    {"type": "graph", "title": "P95 latency", "targets": []},
+    {"type": "graph", "title": "P99 latency", "targets": []},
+    {"type": "graph", "title": "4xx/5xx rate", "targets": []},
+    {"type": "graph", "title": "DB connections", "targets": []}
+  ],
+  "time": {"from": "now-1h", "to": "now"}
+}
+{
   "title": "QR Forge - Basic Metrics",
   "panels": [
     {

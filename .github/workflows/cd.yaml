@@ -1,6 +1,156 @@
 name: CD
 
 on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+env:
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure CLI login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Validate Key Vault secret POSTGRES_URL exists
+        run: |
+          if ! az keyvault secret show --vault-name "${{ secrets.AZURE_KEYVAULT_NAME }}" --name POSTGRES_URL >/dev/null 2>&1; then
+            echo "POSTGRES_URL secret missing in Key Vault ${{ secrets.AZURE_KEYVAULT_NAME }}"; exit 1
+          fi
+
+      - name: Build and push image to ACR
+        run: |
+          az acr build --registry ${{ secrets.ACR_NAME }} --image ${{ secrets.AZURE_WEBAPP_NAME }}:${IMAGE_TAG} .
+
+      - name: Run Trivy scan on image
+        run: |
+          docker pull ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.AZURE_WEBAPP_NAME }}:${IMAGE_TAG}
+          docker tag ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.AZURE_WEBAPP_NAME }}:${IMAGE_TAG} qrapp:scan
+          trivy image -f json -o trivy-report.json qrapp:scan || true
+        continue-on-error: true
+
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy-report.json
+
+      - name: Ensure staging slot exists
+        run: |
+          az webapp deployment slot create --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_WEBAPP_NAME }} --slot staging || true
+
+      - name: Deploy to staging slot (container)
+        run: |
+          az webapp config container set --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_WEBAPP_NAME }} --slot staging --docker-custom-image-name ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.AZURE_WEBAPP_NAME }}:${IMAGE_TAG}
+
+      - name: Run alembic migrations using image (local docker run)
+        run: |
+          POSTGRES_URL=$(az keyvault secret show --vault-name ${{ secrets.AZURE_KEYVAULT_NAME }} --name POSTGRES_URL --query value -o tsv)
+          docker run --rm -e POSTGRES_URL="$POSTGRES_URL" ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.AZURE_WEBAPP_NAME }}:${IMAGE_TAG} alembic upgrade head
+
+      - name: Smoke test staging slot
+        run: |
+          HOST=$(az webapp show --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_WEBAPP_NAME }} --slot staging --query defaultHostName -o tsv)
+          APP_URL="https://$HOST"
+          echo "Health check $APP_URL/health"
+          curl -f $APP_URL/health
+
+      - name: Swap staging to production
+        run: |
+          az webapp deployment slot swap --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_WEBAPP_NAME }} --slot staging --target-slot production
+
+      - name: Post-deploy verification
+        run: |
+          PROD_URL="https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net"
+          curl -f ${PROD_URL}/health
+name: CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+env:
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure CLI login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Validate Key Vault secret POSTGRES_URL exists
+        run: |
+          if ! az keyvault secret show --vault-name "${{ secrets.AZURE_KEYVAULT_NAME }}" --name POSTGRES_URL >/dev/null 2>&1; then
+            echo "POSTGRES_URL secret missing in Key Vault ${{ secrets.AZURE_KEYVAULT_NAME }}"; exit 1
+          fi
+
+      - name: Build and push image to ACR
+        run: |
+          az acr build --registry ${{ secrets.ACR_NAME }} --image ${{ secrets.AZURE_WEBAPP_NAME }}:${IMAGE_TAG} .
+
+      - name: Run Trivy scan on image
+        run: |
+          docker pull ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.AZURE_WEBAPP_NAME }}:${IMAGE_TAG}
+          docker tag ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.AZURE_WEBAPP_NAME }}:${IMAGE_TAG} qrapp:scan
+          trivy image -f json -o trivy-report.json qrapp:scan || true
+        continue-on-error: true
+
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy-report.json
+
+      - name: Ensure staging slot exists
+        run: |
+          az webapp deployment slot create --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_WEBAPP_NAME }} --slot staging || true
+
+      - name: Deploy to staging slot (container)
+        run: |
+          az webapp config container set --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_WEBAPP_NAME }} --slot staging --docker-custom-image-name ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.AZURE_WEBAPP_NAME }}:${IMAGE_TAG}
+
+      - name: Run alembic migrations using image (local docker run)
+        run: |
+          POSTGRES_URL=$(az keyvault secret show --vault-name ${{ secrets.AZURE_KEYVAULT_NAME }} --name POSTGRES_URL --query value -o tsv)
+          docker run --rm -e POSTGRES_URL="$POSTGRES_URL" ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.AZURE_WEBAPP_NAME }}:${IMAGE_TAG} alembic upgrade head
+
+      - name: Smoke test staging slot
+        run: |
+          HOST=$(az webapp show --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_WEBAPP_NAME }} --slot staging --query defaultHostName -o tsv)
+          APP_URL="https://$HOST"
+          echo "Health check $APP_URL/health"
+          curl -f $APP_URL/health
+
+      - name: Swap staging to production
+        run: |
+          az webapp deployment slot swap --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_WEBAPP_NAME }} --slot staging --target-slot production
+
+      - name: Post-deploy verification
+        run: |
+          PROD_URL="https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net"
+          curl -f ${PROD_URL}/health
+name: CD
+
+on:
   push:
     branches:
       - main   # Only runs on push to `main`
@@ -50,6 +200,39 @@ jobs:
           docker tag "$FULL_IMAGE:$IMAGE_TAG" "$FULL_IMAGE:latest"
           docker push "$FULL_IMAGE:latest"
 
+      # SECURITY: Create Key Vault and store POSTGRES_URL as a secret (idempotent)
+      - name: Ensure Key Vault and secret
+        env:
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+        run: |
+          KV_NAME=kv-jsebastianqrapp
+          RG=BCSAI2025-DEVOPS-STUDENTS-A
+          LOCATION=westeurope
+          # create vault if missing
+          az keyvault show --name $KV_NAME --resource-group $RG >/dev/null 2>&1 || az keyvault create --name $KV_NAME --resource-group $RG --location $LOCATION --sku standard
+          # store secret (from repo secret) in vault
+          az keyvault secret set --vault-name $KV_NAME --name POSTGRES-URL --value "$POSTGRES_URL"
+
+      # Assign Managed Identity to Web App and grant Key Vault access
+      - name: Assign managed identity to webapp and grant Key Vault access
+        run: |
+          APP=jsebastianqrapp
+          RG=BCSAI2025-DEVOPS-STUDENTS-A
+          KV_NAME=kv-jsebastianqrapp
+          # assign user-assigned identity to the webapp (if none, creates system assigned)
+          az webapp identity assign --name $APP --resource-group $RG || true
+          PRINCIPAL_ID=$(az webapp show --name $APP --resource-group $RG --query identity.principalId -o tsv)
+          az keyvault set-policy --name $KV_NAME --object-id $PRINCIPAL_ID --secret-permissions get --no-wait || true
+
+      # Configure App Setting to reference Key Vault secret (Key Vault Reference)
+      - name: Configure App Service to use Key Vault reference for POSTGRES_URL
+        run: |
+          APP=jsebastianqrapp
+          RG=BCSAI2025-DEVOPS-STUDENTS-A
+          KV_NAME=kv-jsebastianqrapp
+          # Use Key Vault reference syntax
+          az webapp config appsettings set --name $APP --resource-group $RG --settings POSTGRES_URL="@Microsoft.KeyVault(VaultName=$KV_NAME;SecretName=POSTGRES-URL)"
+
       # Run DB migrations using the built image (safer: migrations run with same deps/code)
       - name: Validate POSTGRES_URL and run migrations inside image
         env:
@@ -69,42 +252,57 @@ jobs:
 
 
       # (Old venv-based migration step removed; migrations are executed from the built image)
-      # Deploy to Azure Web App for Containers
-      - name: Deploy to Azure Web App
+      # Create staging slot (idempotent)
+      - name: Ensure staging slot exists
+        run: |
+          APP=jsebastianqrapp
+          RG=BCSAI2025-DEVOPS-STUDENTS-A
+          az webapp deployment slot create --name $APP --resource-group $RG --slot staging || true
+
+      # Deploy to staging slot first
+      - name: Deploy to staging slot
         uses: azure/webapps-deploy@v3
         with:
           app-name: "jsebastianqrapp"
+          slot-name: "staging"
           images: "jsebastianacr.azurecr.io/qr-app:latest"
 
-      - name: Smoke test deployed app
+      - name: Smoke test staging slot
         run: |
+          APP=jsebastianqrapp
+          RG=BCSAI2025-DEVOPS-STUDENTS-A
           echo "== az account show (diagnostic) =="
           az account show || true
-          echo "== az webapp show (diagnostic) =="
-          az webapp show --name jsebastianqrapp --resource-group BCSAI2025-DEVOPS-STUDENTS-A -o json || true
+          echo "== az webapp show (diagnostic) for staging slot=="
+          az webapp show --name $APP --resource-group $RG --slot staging -o json || true
 
-          # Try to discover the actual host name from Azure using the specific resource group
-          HOST=$(az webapp show --name jsebastianqrapp --resource-group BCSAI2025-DEVOPS-STUDENTS-A --query defaultHostName -o tsv || true)
+          HOST=$(az webapp show --name $APP --resource-group $RG --slot staging --query defaultHostName -o tsv || true)
           if [ -z "$HOST" ] || [ "$HOST" = "null" ]; then
-            echo "WARNING: az could not discover the host for jsebastianqrapp; falling back to workspace default host name"
-            HOST="jsebastianqrapp.azurewebsites.net"
+            echo "ERROR: could not discover staging host" >&2
+            exit 1
           fi
           APP_URL="https://$HOST"
           echo "Waiting for $APP_URL/health"
-          # Retry with diagnostic output; accept JSON bodies that contain the ok status
           for i in {1..30}; do
             echo "Attempt #$i"
-            # follow redirects, fail silently but capture output and status
             body=$(curl -sSL --max-time 10 "$APP_URL/health" || true)
             status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$APP_URL/health" || echo "000")
             echo "HTTP status: $status"
             echo "Body: $body"
             if [ "$status" = "200" ] && echo "$body" | grep -q '"status"\s*:\s*"ok"'; then
-              echo "Smoke test passed against $APP_URL"
+              echo "Staging smoke test passed against $APP_URL"
               exit 0
             fi
             sleep 5
           done
-          echo "Smoke test failed - final status: $status" >&2
+          echo "Staging smoke test failed - final status: $status" >&2
           echo "Final body: $body" >&2
           exit 1
+
+      # Swap staging into production on success
+      - name: Swap staging into production
+        run: |
+          APP=jsebastianqrapp
+          RG=BCSAI2025-DEVOPS-STUDENTS-A
+          echo "Swapping staging -> production"
+          az webapp deployment slot swap --resource-group $RG --name $APP --slot staging --target-slot production || (echo "Swap failed" >&2; exit 1)

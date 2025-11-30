@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import base64
 import io
@@ -49,9 +49,9 @@ def _ensure_dir(path: Path) -> Path:
 
 
 def _hex_to_rgba(color: str) -> Tuple[int, int, int, int]:
-    if color.lower() == 'transparent':
+    if color.lower() == "transparent":
         return TRANSPARENT
-    color = color.lstrip('#')
+    color = color.lstrip("#")
     if len(color) != 6:
         raise ValueError('Expected 6 character hex color or "transparent"')
     r = int(color[0:2], 16)
@@ -83,7 +83,7 @@ def _render_svg(config: QRConfig, matrix: List[List[bool]]) -> str:
             f'viewBox="0 0 {total_size} {total_size}">'
         )
     ]
-    if bg.lower() != 'transparent':
+    if bg.lower() != "transparent":
         svg_parts.append(
             (
                 f'<rect width="{total_size}" height="{total_size}" '
@@ -106,8 +106,8 @@ def _render_svg(config: QRConfig, matrix: List[List[bool]]) -> str:
                     f'fill="{fg}" />'
                 )
             )
-    svg_parts.append('</svg>')
-    return ''.join(svg_parts)
+    svg_parts.append("</svg>")
+    return "".join(svg_parts)
 
 
 def _render_png(config: QRConfig, matrix: List[List[bool]]) -> bytes:
@@ -116,7 +116,7 @@ def _render_png(config: QRConfig, matrix: List[List[bool]]) -> bytes:
     total_size = config.size + config.padding * 2
 
     background = Image.new(
-        'RGBA', (total_size, total_size), _hex_to_rgba(config.background_color)
+        "RGBA", (total_size, total_size), _hex_to_rgba(config.background_color)
     )
     draw = ImageDraw.Draw(background)
     fg_rgba = _hex_to_rgba(config.foreground_color)
@@ -133,17 +133,17 @@ def _render_png(config: QRConfig, matrix: List[List[bool]]) -> bytes:
 
     if config.border_radius > 0:
         radius = min(config.border_radius, total_size // 2)
-        mask = Image.new('L', (total_size, total_size), 0)
+        mask = Image.new("L", (total_size, total_size), 0)
         mask_draw = ImageDraw.Draw(mask)
         mask_draw.rounded_rectangle(
             (0, 0, total_size, total_size), radius=radius, fill=255
         )
-        rounded = Image.new('RGBA', (total_size, total_size))
+        rounded = Image.new("RGBA", (total_size, total_size))
         rounded.paste(background, (0, 0), mask=mask)
         background = rounded
 
     with io.BytesIO() as buf:
-        background.save(buf, format='PNG')
+        background.save(buf, format="PNG")
         return buf.getvalue()
 
 
@@ -166,7 +166,7 @@ def generate_qr_assets(
 
     svg_filename = f"{uuid.uuid4()}.svg"
     svg_path = svg_dir / svg_filename
-    svg_path.write_text(render.svg_text, encoding='utf-8')
+    svg_path.write_text(render.svg_text, encoding="utf-8")
 
     png_filename = f"{svg_filename[:-4]}.png"
     png_path = png_dir / png_filename
@@ -178,5 +178,5 @@ def generate_qr_assets(
 def encode_render(render: QRRender) -> QRPreview:
     return QRPreview(
         svg_data=render.svg_text,
-        png_data=base64.b64encode(render.png_bytes).decode('ascii'),
+        png_data=base64.b64encode(render.png_bytes).decode("ascii"),
     )
