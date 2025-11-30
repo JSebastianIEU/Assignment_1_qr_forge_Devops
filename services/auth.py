@@ -18,7 +18,9 @@ def signup_user(session: Session, payload: UserCreate) -> User:
     normalized_email = _normalize_email(payload.email)
     existing = session.exec(select(User).where(User.email == normalized_email)).first()
     if existing:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Email already registered"
+        )
 
     now = datetime.now(timezone.utc)
     user = User(
@@ -38,7 +40,9 @@ def login_user(session: Session, payload: UserLogin) -> Token:
     normalized_email = _normalize_email(payload.email)
     user = session.exec(select(User).where(User.email == normalized_email)).first()
     if not user or not verify_password(payload.password, user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
+        )
 
     token = create_access_token(subject=user.id)
     return Token(access_token=token)

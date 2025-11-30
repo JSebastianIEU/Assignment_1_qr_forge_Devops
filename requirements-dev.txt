@@ -1,8 +1,6 @@
-ruff
-black
-pre-commit
-pytest
-pytest-cov
-coverage
-prometheus-client
-prometheus-fastapi-instrumentator
+ruff>=0.14.7,<1.0.0
+black==23.9.1
+pre-commit==3.4.0
+pytest==8.3.3
+pytest-cov==5.0.0
+coverage==7.2.7

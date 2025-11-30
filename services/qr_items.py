@@ -9,7 +9,13 @@ from sqlmodel import Session, select
 
 from models import QRItem, User
 from schemas import QRCreate, QRPreviewResponse
-from services.qr import QRConfig, QRPreview, encode_render, generate_qr_assets, render_qr
+from services.qr import (
+    QRConfig,
+    QRPreview,
+    encode_render,
+    generate_qr_assets,
+    render_qr,
+)
 
 
 def build_config(payload: QRCreate) -> QRConfig:
@@ -73,7 +79,9 @@ def get_owned_item(session: Session, current_user: User, item_id: int) -> QRItem
         select(QRItem).where(QRItem.id == item_id, QRItem.user_id == current_user.id)
     ).first()
     if not item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="QR item not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="QR item not found"
+        )
     return item
 
 
@@ -85,19 +93,28 @@ def delete_qr_item(session: Session, current_user: User, item_id: int) -> None:
     session.commit()
 
 
-def download_path(session: Session, current_user: User, item_id: int, format: str) -> Path:
+def download_path(
+    session: Session, current_user: User, item_id: int, format: str
+) -> Path:
     item = get_owned_item(session, current_user, item_id)
     if format == "svg":
         path = Path(item.svg_path)
         if not path.exists():
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="SVG not available")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="SVG not available"
+            )
         return path
 
     if not item.png_path:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="PNG export not available yet")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="PNG export not available yet",
+        )
     path = Path(item.png_path)
     if not path.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PNG not available")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="PNG not available"
+        )
     return path
 
 

@@ -18,6 +18,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate POSTGRES_URL secret exists
+        run: |
+          if [ -z "${{ secrets.POSTGRES_URL }}" ]; then
+            echo "ERROR: POSTGRES_URL secret is not set. Aborting." >&2
+            exit 1
+          fi
+
       # Login to Azure using the Service Principal stored in your repository secrets
       - name: Azure Login
         uses: azure/login@v2
@@ -68,3 +75,19 @@ jobs:
         with:
           app-name: "jsebastianqrapp"
           images: "jsebastianacr.azurecr.io/qr-app:latest"
+
+      - name: Smoke test deployed app
+        run: |
+          APP_URL="https://jsebastianqrapp.azurewebsites.net"
+          echo "Waiting for $APP_URL/health"
+          for i in {1..20}; do
+            status=$(curl -s -o /dev/null -w "%{http_code}" $APP_URL/health || true)
+            body=$(curl -s $APP_URL/health || true)
+            if [ "$status" = "200" ] && [ "$body" = '{"status":"ok"}' ]; then
+              echo "Smoke test passed"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Smoke test failed" >&2
+          exit 1

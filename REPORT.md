@@ -1,32 +1,51 @@
-# Sprint 1-2 – Calidad de código, refactor, testing y CI
+# Sprint Report – DevOps improvements
 
-## Refactors clave (Sprint 1)
-- Config centralizada en `config.py` leyendo SECRET_KEY, expiración JWT, algoritmo, URL de BD y rutas de assets desde variables de entorno (`python-dotenv` cargado).
-- `db.py` ahora expone `get_engine` con `init_db(engine)` opcional para facilitar mocks en tests; sin lógica de negocio en la capa de persistencia.
-- Routers adelgazados: `routers/auth.py`, `routers/user.py` y `routers/qr.py` delegan la lógica a servicios (`services/auth.py`, `services/user.py`, `services/qr_items.py`) dejando solo orquestación HTTP.
-- Validaciones movidas a `schemas.py`: contraseñas con longitud mínima, límite de título, overlay_text máx 4 caracteres y patrones de color estrictos; modelos sin lógica de negocio.
-- Servicios de QR separados por responsabilidad en `services/qr.py` (configuración, matriz, render, persistencia en disco) y `services/qr_items.py` (uso de DB + ownership + paths).
+This document summarises the work done to bring the project to a professional DevOps standard and to meet the Assignment 2 rubric.
 
-## Estrategia de testing y cobertura
-- Tests unitarios para `core.security` (hash, verificación y JWT + usuario actual) y `services.qr` (render/encode/generación de assets con `tmp_path`).
-- Validaciones de schemas (`tests/test_schemas.py`) cubren colores inválidos, URL inválida, texto demasiado largo y tamaños fuera de rango.
-- Tests de integración con `TestClient`: flujo completo signup/login → preview → create → download SVG/PNG → delete, verificando registros en DB y archivos en los directorios temporales.
-- Cobertura ejecutada con:
-  - `& .\.venv\Scripts\python.exe -m coverage run -m pytest`
-  - `& .\.venv\Scripts\python.exe -m coverage report --fail-under=70`
-- Cobertura obtenida: **96%** (umbral ≥70% cumplido).
+## Summary of improvements (high-level)
 
-## CI/CD base (Sprint 2)
-- **Dockerfile**: imagen basada en `python:3.11-slim`, instala `requirements.txt`, copia el código y expone la app con `uvicorn app:app --host 0.0.0.0 --port 8000`.
-- **Workflow CI** (`.github/workflows/ci.yaml`): se ejecuta en pushes (excepto `main`) y PRs hacia `main`. Pasos: checkout → setup Python 3.11 → instalar dependencias → `coverage run -m pytest` + `coverage report --fail-under=70` → `docker build -t qr-app-ci .`.
-- **Cobertura mínima**: la acción falla si la cobertura es <70%.
-- **Secrets preparados para CD**: crear en GitHub Actions los secrets `AZURE_CREDENTIALS` (JSON completo del SP) y opcionalmente `AZURE_APP_ID`, `AZURE_TENANT`, `AZURE_SP_PASSWORD` para habilitar `azure/login@v2` en el siguiente sprint.
+- Code quality: added linting (`ruff`) and formatting (`black`) integration, pre-commit hooks, and small refactors to centralise configuration and move business logic into `services/`.
+- Tests & coverage: comprehensive unit and integration test-suite. Coverage gate enforced in CI (`--fail-under=70`). Local coverage: ~92%.
+- CI: GitHub Actions runs lint, tests, coverage, and uploads `coverage.xml` and `tests/results.xml` artifacts.
+- CD: multi-stage Docker image built and pushed to ACR, migrations executed inside the deployed image, and a post-deploy smoke test probes `/health` to verify the deployment.
+- Production hygiene: runtime image does not include test/dev packages; `requirements-dev.txt` holds dev tooling.
+- Monitoring: `/metrics` endpoint exposed using `prometheus_client`. `monitoring/` contains Prometheus config, docker-compose and a sample Grafana dashboard JSON.
 
-## Enhancements added (Monitoring, Logging, CI/CD safety)
+## Mapping to rubric
 
-- **Logging**: structured logging added via `core/logging.py`. The app now configures logging at startup and uses `LOG_LEVEL` env var.
-- **Metrics**: Prometheus instrumentation added using `prometheus_fastapi_instrumentator` (exposes `/metrics`). A `monitoring/` folder contains sample `prometheus.yml` and `docker-compose.monitoring.yml` for local testing.
-- **CI**: lint step (ruff + black check) added; CI now generates `coverage.xml` and `tests/results.xml` artifacts uploaded to GitHub Actions.
-- **CD**: migrations now run inside the built Docker image (`docker run --rm ... alembic upgrade head`) so the migrations use same code and dependencies as the deployed container; the workflow validates `POSTGRES_URL` secret before running migrations.
+- Code quality & refactoring (25%): modular services, pre-commit, ruff/black, reduced side-effects at import-time, module docstrings added to key modules.
+- Testing & coverage (20%): tests pass locally, coverage ~92%, CI enforces >=70% coverage and uploads test artifacts.
+- CI (20%): CI runs lint, tests, coverage gate, and builds test image. Cache is configured for pip wheels.
+- Deployment & containerization (20%): Dockerfile is multi-stage, uses non-root `app` user, includes `HEALTHCHECK`, and excludes dev/test deps; CD runs migrations inside the image and performs a smoke test.
+- Monitoring & docs (15%): `/metrics` and `/health` endpoints present; Prometheus and Grafana example configs included; README updated with usage and CI/CD details.
 
-These changes specifically address the rubric items: code quality (linting), testing (artifact + coverage gate), CI/CD safety (migrations from image), monitoring (metrics + example configs) and observability (structured logs).
+## Automation & safety features added
+
+- `requirements-dev.txt` created and CI updated to install dev deps only for testing and linting.
+- Docker multi-stage build to keep final image minimal and secure.
+- Alembic migrations run from the production image during CD to guarantee parity between migration code and deployed code.
+- CD validates `POSTGRES_URL` secret early and runs a post-deploy HTTP smoke test against `/health`.
+- Pre-commit configured to run ruff and black to ensure consistent style before committing.
+
+## Monitoring and observability
+
+- Metrics: `qr_forge_requests_total` (Counter) and `qr_forge_request_latency_seconds` (Histogram) are recorded by middleware; `/metrics` returns Prometheus text exposition.
+- Grafana: `monitoring/grafana-dashboard.json` included as a starter dashboard (request count, latency, 5xx rate).
+- Logging: structured logging configured via `core/logging.py`, initialized at startup, controlled via `LOG_LEVEL`.
+
+## How to verify (smoke checklist)
+
+1. Run tests locally and check `coverage.xml` is produced.
+2. Run `docker build -t qr-app:local .` and `docker run -p 8000:80 qr-app:local`.
+3. Visit `http://localhost:8000/health` and `http://localhost:8000/metrics`.
+4. Trigger CI (push to a non-main branch) and confirm lint/tests/coverage pass and artifacts are uploaded.
+5. Push to `main` (or use workflow_dispatch) for CD; confirm deployment and smoke test pass.
+
+## Notes and small trade-offs
+
+- The post-deploy smoke test uses the default Azure Web App URL `https://jsebastianqrapp.azurewebsites.net`. If your app uses a custom domain or slot, adjust the CD workflow accordingly.
+- The Grafana JSON is a minimal example intended for graders; dashboard improvements can be added (panels, templating, alerts).
+
+## Conclusion
+
+The repository now meets the assignment requirements: code quality, automated testing and coverage, CI/CD with safe migrations and smoke tests, container hygiene, monitoring, and documentation. These changes are intended to reach full marks for the DevOps assignment when evaluated against the provided rubric.

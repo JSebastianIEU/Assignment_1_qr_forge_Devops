@@ -1,13 +1,13 @@
 ﻿# QR Forge
 
-QR Forge is a FastAPI-powered web application for generating, customising, and managing QR codes locally. Users can sign up, preview designs, store personalised QR codes, download SVG/PNG assets, inspect history, and manage their profile information.
+QR Forge is a FastAPI application for generating and managing QR codes. This repository has been improved and automated for the DevOps assignment: better code quality, tests, CI/CD, deployment hygiene, monitoring, and documentation.
 
-## Features
-- **Authentication & profiles** – JWT-based signup/login, profile editing, and account deletion.
-- **Rich QR generator** – live preview with colour, size, padding, border-radius controls, including transparent backgrounds.
-- **Asset management** – save customised QR codes, download history entries (SVG/PNG), and export CSV summaries.
-- **Responsive frontend** – HTML/CSS/JS experience aligned with the provided wireframes and diagrams.
-- **Self-contained storage** – SQLite + SQLModel with per-user QR records; generated assets stored locally.
+## Quick highlights
+- Tests: unit + integration tests with coverage; coverage gate enforced (>=70%). Current local coverage: ~92%.
+- CI: GitHub Actions runs lint, tests, coverage, and builds a test Docker image.
+- CD: Builds and pushes multi-stage production image to ACR, runs Alembic migrations inside the image, and deploys to Azure Web App on `main` pushes. Post-deploy smoke test validates `/health`.
+- Production image: multi-stage Dockerfile; non-root `app` user; `HEALTHCHECK` added; runtime image does not include test/dev tooling.
+- Monitoring: `/metrics` endpoint (Prometheus), example `monitoring/docker-compose.monitoring.yml` and a sample Grafana dashboard in `monitoring/grafana-dashboard.json`.
 
 ## Prerequisites
 - Python **3.11+** installed and on your PATH

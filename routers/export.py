@@ -24,7 +24,9 @@ def export_csv(
     current_user: User = Depends(get_current_user),
 ) -> StreamingResponse:
     rows = session.exec(
-        select(QRItem).where(QRItem.user_id == current_user.id).order_by(QRItem.created_at.desc())
+        select(QRItem)
+        .where(QRItem.user_id == current_user.id)
+        .order_by(QRItem.created_at.desc())
     ).all()
 
     buf = io.StringIO()

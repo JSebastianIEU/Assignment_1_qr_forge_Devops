@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import HTTPException, status
 from sqlmodel import Session, select
 
 from core.security import get_password_hash

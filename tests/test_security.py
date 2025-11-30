@@ -4,9 +4,14 @@ from datetime import timedelta
 import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
-from sqlmodel import SQLModel, Session
+from sqlmodel import Session, SQLModel
 
-from core.security import create_access_token, get_current_user, get_password_hash, verify_password
+from core.security import (
+    create_access_token,
+    get_current_user,
+    get_password_hash,
+    verify_password,
+)
 from db import get_engine
 from models import User
 
@@ -29,7 +34,11 @@ def test_password_hash_roundtrip() -> None:
 
 
 def test_create_access_token_contains_subject(memory_session: Session) -> None:
-    user = User(email="jwt@example.com", full_name="", hashed_password=get_password_hash("password123"))
+    user = User(
+        email="jwt@example.com",
+        full_name="",
+        hashed_password=get_password_hash("password123"),
+    )
     memory_session.add(user)
     memory_session.commit()
     memory_session.refresh(user)

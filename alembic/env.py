@@ -1,16 +1,16 @@
-from logging.config import fileConfig
 import os
-from sqlalchemy import create_engine
-from sqlalchemy import pool
-from alembic import context
+from logging.config import fileConfig
 
+from sqlalchemy import create_engine
 from sqlmodel import SQLModel
 
 # Import project models only to populate metadata; avoid importing application
 # config or db modules which may have side effects (like creating directories).
 import models  # noqa: F401
+from alembic import context
 
-# this is the Alembic Config object, which provides access to the values within the .ini file in use.
+# This is the Alembic Config object. It provides access to the
+# values within the .ini file in use.
 config = context.config
 
 # Interpret the config file for Python logging.
@@ -42,7 +42,8 @@ def get_url() -> str:
     if url:
         return url
     raise RuntimeError(
-        "No database URL configured for Alembic. Set POSTGRES_URL or sqlalchemy.url in alembic.ini"
+        "No database URL configured for Alembic. Set POSTGRES_URL or"
+        " sqlalchemy.url in alembic.ini"
     )
 
 

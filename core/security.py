@@ -25,7 +25,9 @@ class _AuthError(HTTPException):
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Return True when the provided password matches the stored bcrypt hash."""
 
-    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    return bcrypt.checkpw(
+        plain_password.encode("utf-8"), hashed_password.encode("utf-8")
+    )
 
 
 def get_password_hash(password: str) -> str:
@@ -34,10 +36,14 @@ def get_password_hash(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
-def create_access_token(*, subject: int, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(
+    *, subject: int, expires_delta: Optional[timedelta] = None
+) -> str:
     """Create a signed JWT using the configured algorithm and expiry."""
 
-    expire_delta = expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
+    expire_delta = expires_delta or timedelta(
+        minutes=settings.access_token_expire_minutes
+    )
     expire = datetime.now(timezone.utc) + expire_delta
     payload = {"sub": str(subject), "exp": expire}
     return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)

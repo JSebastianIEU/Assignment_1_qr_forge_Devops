@@ -1,3 +1,9 @@
+"""Centralised structured logging configuration for the application.
+
+This module exposes `configure_logging` to initialise the root logger and
+`get_logger` as a convenience wrapper.
+"""
+
 import logging
 import os
 from typing import Optional

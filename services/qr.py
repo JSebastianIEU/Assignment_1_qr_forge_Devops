@@ -77,11 +77,19 @@ def _render_svg(config: QRConfig, matrix: List[List[bool]]) -> str:
     total_size = config.size + config.padding * 2
     bg = config.background_color
     svg_parts = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{total_size}" height="{total_size}" viewBox="0 0 {total_size} {total_size}">'
+        (
+            f'<svg xmlns="http://www.w3.org/2000/svg" '
+            f'width="{total_size}" height="{total_size}" '
+            f'viewBox="0 0 {total_size} {total_size}">'
+        )
     ]
     if bg.lower() != 'transparent':
         svg_parts.append(
-            f'<rect width="{total_size}" height="{total_size}" fill="{bg}" rx="{config.border_radius}" ry="{config.border_radius}" />'
+            (
+                f'<rect width="{total_size}" height="{total_size}" '
+                f'fill="{bg}" rx="{config.border_radius}" '
+                f'ry="{config.border_radius}" />'
+            )
         )
     pad = config.padding
     fg = config.foreground_color
@@ -92,7 +100,11 @@ def _render_svg(config: QRConfig, matrix: List[List[bool]]) -> str:
             x0 = pad + x * module_size
             y0 = pad + y * module_size
             svg_parts.append(
-                f'<rect x="{x0:.3f}" y="{y0:.3f}" width="{module_size:.3f}" height="{module_size:.3f}" fill="{fg}" />'
+                (
+                    f'<rect x="{x0:.3f}" y="{y0:.3f}" '
+                    f'width="{module_size:.3f}" height="{module_size:.3f}" '
+                    f'fill="{fg}" />'
+                )
             )
     svg_parts.append('</svg>')
     return ''.join(svg_parts)
@@ -103,7 +115,9 @@ def _render_png(config: QRConfig, matrix: List[List[bool]]) -> bytes:
     module_size = config.size / modules
     total_size = config.size + config.padding * 2
 
-    background = Image.new('RGBA', (total_size, total_size), _hex_to_rgba(config.background_color))
+    background = Image.new(
+        'RGBA', (total_size, total_size), _hex_to_rgba(config.background_color)
+    )
     draw = ImageDraw.Draw(background)
     fg_rgba = _hex_to_rgba(config.foreground_color)
 
@@ -121,7 +135,9 @@ def _render_png(config: QRConfig, matrix: List[List[bool]]) -> bytes:
         radius = min(config.border_radius, total_size // 2)
         mask = Image.new('L', (total_size, total_size), 0)
         mask_draw = ImageDraw.Draw(mask)
-        mask_draw.rounded_rectangle((0, 0, total_size, total_size), radius=radius, fill=255)
+        mask_draw.rounded_rectangle(
+            (0, 0, total_size, total_size), radius=radius, fill=255
+        )
         rounded = Image.new('RGBA', (total_size, total_size))
         rounded.paste(background, (0, 0), mask=mask)
         background = rounded

@@ -1,3 +1,10 @@
+"""Helpers that prepare runtime filesystem state for the application.
+
+This module provides `ensure_dirs` which creates asset and temp directories
+at application startup. Directory creation is tolerant to failures (useful
+for CI runners with restricted permissions).
+"""
+
 from pathlib import Path
 from typing import Iterable
 

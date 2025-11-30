@@ -1,0 +1,26 @@
+{
+  "title": "QR Forge - Basic Metrics",
+  "panels": [
+    {
+      "type": "graph",
+      "title": "Request Count",
+      "targets": [
+        { "expr": "sum by (endpoint)(increase(qr_forge_requests_total[5m]))", "legendFormat": "{{endpoint}}" }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Average Request Latency (s)",
+      "targets": [
+        { "expr": "avg by (endpoint)(rate(qr_forge_request_latency_seconds_sum[5m]) / rate(qr_forge_request_latency_seconds_count[5m]))", "legendFormat": "{{endpoint}}" }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "5xx Error Rate",
+      "targets": [
+        { "expr": "sum(increase(qr_forge_requests_total{http_status=~\"5..\"}[5m])) / sum(increase(qr_forge_requests_total[5m]))", "legendFormat": "5xx rate" }
+      ]
+    }
+  ]
+}

@@ -16,7 +16,10 @@ def _auth_headers(client: TestClient) -> dict:
     resp = client.post("/api/auth/signup", json=signup_payload)
     assert resp.status_code == 201, resp.text
 
-    login_payload = {"email": signup_payload["email"], "password": signup_payload["password"]}
+    login_payload = {
+        "email": signup_payload["email"],
+        "password": signup_payload["password"],
+    }
     resp = client.post("/api/auth/login", json=login_payload)
     assert resp.status_code == 200, resp.text
     token = resp.json()["access_token"]

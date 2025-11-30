@@ -6,13 +6,13 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.append(str(ROOT_DIR))
 
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy.pool import StaticPool
-from sqlmodel import SQLModel, Session, create_engine
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+from sqlalchemy.pool import StaticPool  # noqa: E402
+from sqlmodel import Session, SQLModel, create_engine  # noqa: E402
 
-from app import app
-from db import get_session
+from app import app  # noqa: E402
+from db import get_session  # noqa: E402
 
 TEST_DATABASE_URL = "sqlite://"
 

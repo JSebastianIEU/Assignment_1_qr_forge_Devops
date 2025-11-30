@@ -1,13 +1,14 @@
 ﻿import base64
 
-import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from models import QRItem, User
 
 
-def _auth_headers(client: TestClient, email: str = "alice@example.com", password: str = "secret123") -> dict:
+def _auth_headers(
+    client: TestClient, email: str = "alice@example.com", password: str = "secret123"
+) -> dict:
     signup_payload = {
         "email": email,
         "full_name": "Alice Example",

@@ -1,5 +1,6 @@
 ﻿from fastapi.testclient import TestClient
 
+
 def auth_headers(client: TestClient, email: str = "qrtester@example.com") -> dict:
     payload = {
         "email": email,
@@ -77,4 +78,3 @@ def test_history_only_returns_owner_items(client: TestClient) -> None:
 
     resp_alice = client.get("/api/qr/history", headers=alice_headers)
     assert len(resp_alice.json()) == 1
-

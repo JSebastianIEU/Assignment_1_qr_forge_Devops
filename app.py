@@ -1,48 +1,76 @@
 ﻿from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from db import init_db
-from routers import auth, export, qr, user
+from config import settings
+from core.bootstrap import ensure_dirs
 
 # Lazy startup utilities
 from core.logging import configure_logging, get_logger
-from core.bootstrap import ensure_dirs
-from config import settings
+from db import init_db
+from routers import auth, export, qr, user
 
-# Prometheus instrumentation
+# Prometheus metrics (use prometheus_client directly to ensure /metrics works in prod)
 try:
-    from prometheus_fastapi_instrumentator import Instrumentator
+    from prometheus_client import (
+        CONTENT_TYPE_LATEST,
+        Counter,
+        Histogram,
+        generate_latest,
+    )
 except Exception:
-    Instrumentator = None
+    # Fallback no-op implementations so tests and environments without
+    # prometheus_client can still import the application module.
+    class _NoopMetric:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def labels(self, *args, **kwargs):
+            return self
+
+        def inc(self, *args, **kwargs):
+            return None
+
+        def observe(self, *args, **kwargs):
+            return None
+
+    Counter = _NoopMetric
+    Histogram = _NoopMetric
+
+    def generate_latest():
+        return b""
+
+    CONTENT_TYPE_LATEST = "text/plain; version=0.0.4; charset=utf-8"
 
 BASE_DIR = Path(__file__).parent
 
 TAGS_METADATA = [
     {
         "name": "auth",
-        "description": "Authentication endpoints for signing up, logging in, and logging out.",
+        "description": "Authentication endpoints: signup, login and logout",
     },
     {
         "name": "users",
-        "description": "Profile management endpoints for viewing, updating, or deleting the current user.",
+        "description": "Profile endpoints for viewing, updating, or deleting a user",
     },
     {
         "name": "qr",
-        "description": "QR generation, preview, download, and history endpoints scoped to the authenticated user.",
+        "description": "QR generation, preview, download and history for a user",
     },
     {
         "name": "export",
-        "description": "CSV export of the authenticated user's QR history.",
+        "description": "CSV export of a user's QR history",
     },
 ]
 
 app = FastAPI(
     title="QR Forge",
-    description="Generate, preview, customise, and manage QR codes locally with FastAPI.",
+    description=(
+        "Generate, preview, customise and manage QR codes locally with FastAPI."
+    ),
     version="1.0.0",
     contact={
         "name": "QR Forge",
@@ -54,6 +82,51 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url=None,
 )
+
+# Prometheus metrics definitions
+REQUEST_COUNT = Counter(
+    "qr_forge_requests_total",
+    "Total HTTP requests",
+    ["method", "endpoint", "http_status"],
+)
+REQUEST_LATENCY = Histogram(
+    "qr_forge_request_latency_seconds",
+    "Request latency seconds",
+    ["method", "endpoint"],
+)
+
+
+@app.middleware("http")
+async def metrics_middleware(request: Request, call_next):
+    path = request.url.path
+    method = request.method
+    if path == "/metrics":
+        return await call_next(request)
+    import time
+
+    start = time.time()
+    try:
+        response = await call_next(request)
+        status = str(response.status_code)
+    except Exception:  # capture exceptions as 500
+        status = "500"
+        REQUEST_COUNT.labels(method=method, endpoint=path, http_status=status).inc()
+        raise
+    finally:
+        elapsed = time.time() - start
+        try:
+            REQUEST_LATENCY.labels(method=method, endpoint=path).observe(elapsed)
+            REQUEST_COUNT.labels(method=method, endpoint=path, http_status=status).inc()
+        except Exception:
+            pass
+    return response
+
+
+@app.get("/metrics", include_in_schema=False)
+def metrics():
+    """Prometheus metrics endpoint (always available)."""
+    data = generate_latest()
+    return PlainTextResponse(content=data, media_type=CONTENT_TYPE_LATEST)
 
 
 @app.on_event("startup")
@@ -74,13 +147,17 @@ def on_startup() -> None:
     except Exception:
         logger.exception("init_db() raised an exception during startup")
 
-    # Instrument Prometheus metrics if library present
-    if Instrumentator is not None:
-        try:
-            Instrumentator().instrument(app).expose(app)
-            logger.info("Prometheus instrumentation enabled (exposes /metrics)")
-        except Exception:
-            logger.exception("Failed to enable Prometheus instrumentation")
+    # Attempt to use optional instrumentator if installed (additional metrics)
+    try:
+        from prometheus_fastapi_instrumentator import Instrumentator
+
+        Instrumentator().instrument(app).expose(app)
+        logger.info("Prometheus instrumentation enabled (exposes /metrics)")
+    except Exception:
+        # If not installed, fallback to the built-in prometheus_client metrics above
+        logger.info(
+            "prometheus_fastapi_instrumentator not available; using builtin metrics"
+        )
 
 
 app.include_router(auth.router)
@@ -102,7 +179,9 @@ def favicon() -> FileResponse:
     return FileResponse(BASE_DIR / "static" / "favicon.ico")
 
 
-@app.get("/", response_class=HTMLResponse, name="home", summary="Serve the landing page")
+@app.get(
+    "/", response_class=HTMLResponse, name="home", summary="Serve the landing page"
+)
 def home(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         "home.html",
@@ -110,7 +189,12 @@ def home(request: Request) -> HTMLResponse:
     )
 
 
-@app.get("/generator", response_class=HTMLResponse, name="generator_page", summary="Serve the QR generator UI")
+@app.get(
+    "/generator",
+    response_class=HTMLResponse,
+    name="generator_page",
+    summary="Serve the QR generator UI",
+)
 def generator_page(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         "index.html",
@@ -118,7 +202,12 @@ def generator_page(request: Request) -> HTMLResponse:
     )
 
 
-@app.get("/history", response_class=HTMLResponse, name="history_page", summary="Serve the saved history UI")
+@app.get(
+    "/history",
+    response_class=HTMLResponse,
+    name="history_page",
+    summary="Serve the saved history UI",
+)
 def history_page(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         "history.html",
@@ -126,7 +215,12 @@ def history_page(request: Request) -> HTMLResponse:
     )
 
 
-@app.get("/profile", response_class=HTMLResponse, name="profile_page", summary="Serve the profile management UI")
+@app.get(
+    "/profile",
+    response_class=HTMLResponse,
+    name="profile_page",
+    summary="Serve the profile management UI",
+)
 def profile_page(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         "profile.html",
@@ -134,7 +228,12 @@ def profile_page(request: Request) -> HTMLResponse:
     )
 
 
-@app.get("/login", response_class=HTMLResponse, name="login_page", summary="Serve the login UI")
+@app.get(
+    "/login",
+    response_class=HTMLResponse,
+    name="login_page",
+    summary="Serve the login UI",
+)
 def login_page(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         "login.html",
@@ -142,7 +241,12 @@ def login_page(request: Request) -> HTMLResponse:
     )
 
 
-@app.get("/signup", response_class=HTMLResponse, name="signup_page", summary="Serve the signup UI")
+@app.get(
+    "/signup",
+    response_class=HTMLResponse,
+    name="signup_page",
+    summary="Serve the signup UI",
+)
 def signup_page(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         "signup.html",
