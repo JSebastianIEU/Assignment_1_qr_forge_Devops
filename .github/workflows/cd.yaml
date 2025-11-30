@@ -22,8 +22,8 @@ jobs:
              [ -z "${{ secrets.ACR_NAME }}" ] || \
              [ -z "${{ secrets.AZURE_RESOURCE_GROUP }}" ] || \
              [ -z "${{ secrets.AZURE_WEBAPP_NAME }}" ] || \
-             [ -z "${{ secrets.AZURE_KEYVAULT_NAME }}" ]; then
-            echo "Missing required secrets: AZURE_CREDENTIALS, ACR_NAME, AZURE_RESOURCE_GROUP, AZURE_WEBAPP_NAME, AZURE_KEYVAULT_NAME" >&2
+             [ -z "${{ secrets.POSTGRES_URL }}" ]; then
+            echo "Missing required secrets: AZURE_CREDENTIALS, ACR_NAME, AZURE_RESOURCE_GROUP, AZURE_WEBAPP_NAME, POSTGRES_URL" >&2
             exit 1
           fi
 
@@ -55,12 +55,7 @@ jobs:
           IMAGE="${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.AZURE_WEBAPP_NAME }}:${{ env.IMAGE_TAG }}"
           az acr login --name ${{ secrets.ACR_NAME }}
           docker pull "$IMAGE"
-          POSTGRES_URL=$(az keyvault secret show --vault-name "${{ secrets.AZURE_KEYVAULT_NAME }}" --name POSTGRES_URL --query value -o tsv)
-          if [ -z "$POSTGRES_URL" ]; then
-            echo "POSTGRES_URL secret not found in Key Vault ${{ secrets.AZURE_KEYVAULT_NAME }}" >&2
-            exit 1
-          fi
-          docker run --rm -e POSTGRES_URL="$POSTGRES_URL" "$IMAGE" alembic upgrade head
+          docker run --rm -e POSTGRES_URL="${{ secrets.POSTGRES_URL }}" "$IMAGE" alembic upgrade head
 
       - name: Smoke test production
         run: |

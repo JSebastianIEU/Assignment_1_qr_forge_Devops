@@ -12,6 +12,8 @@ env:
 jobs:
   test-and-lint:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite://
     strategy:
       matrix:
         python-version: [3.11, 3.12]
