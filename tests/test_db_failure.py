@@ -1,7 +1,7 @@
 import pytest
 
-from db import get_engine
-from config import settings
+from app.db import get_engine
+from app.config import settings
 
 
 def test_get_engine_raises_when_no_url(monkeypatch) -> None:

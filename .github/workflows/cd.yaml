@@ -70,7 +70,7 @@ jobs:
           fi
           APP_URL="https://$HOST/health"
           echo "Checking $APP_URL"
-          for i in $(seq 1 30); do
+          for i in $(seq 1 15); do
             status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$APP_URL" || echo "000")
             echo "Attempt $i: $status"
             if [ "$status" = "200" ]; then
@@ -80,7 +80,7 @@ jobs:
             sleep 5
           done
           if [ "$status" != "200" ]; then
-            echo "Production smoke test failed" >&2
+            echo "Production smoke test failed after 15 attempts" >&2
             exit 1
           fi
 

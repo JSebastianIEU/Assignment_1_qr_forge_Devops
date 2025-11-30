@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from schemas import QRCreate
+from app.schemas import QRCreate
 
 
 def _base_payload() -> dict:

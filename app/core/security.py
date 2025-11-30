@@ -8,9 +8,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlmodel import Session
 
-from config import settings
-from db import get_session
-from models import User
+from app.config import settings
+from app.db import get_session
+from app.models import User
 
 http_bearer = HTTPBearer(auto_error=False)
 

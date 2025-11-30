@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
-from models import QRItem, User
+from app.models import QRItem, User
 
 
 def _auth_headers(client: TestClient) -> dict:

@@ -11,13 +11,11 @@ from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from config import settings
-from core.bootstrap import ensure_dirs
-
-# Lazy startup utilities
-from core.logging import configure_logging, get_logger
-from db import init_db
-from routers import auth, export, qr, user
+from app.config import settings
+from app.core.bootstrap import ensure_dirs
+from app.core.logging import configure_logging, get_logger
+from app.db import init_db
+from app.routers import auth, export, qr, user
 
 # Prometheus metrics (use prometheus_client directly to ensure /metrics works in prod)
 try:
@@ -288,8 +286,8 @@ app.include_router(user.router)
 app.include_router(qr.router)
 app.include_router(export.router)
 
-app.mount("/assets", StaticFiles(directory="assets"), name="assets")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/assets", StaticFiles(directory=str(BASE_DIR / "assets")), name="assets")
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
 __all__ = ("app",)
@@ -388,7 +386,7 @@ def health() -> dict:
 
     try:
         # perform a quick connection test
-        from db import engine
+        from app.db import engine
 
         with engine.connect() as conn:
             conn.execute("SELECT 1")

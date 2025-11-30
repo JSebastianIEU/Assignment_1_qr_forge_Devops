@@ -3,10 +3,10 @@ from pathlib import Path
 import pytest
 from sqlmodel import SQLModel
 
-from db import get_engine
-from models import User
-from schemas import QRCreate
-import services.qr_items as qr_items
+from app.db import get_engine
+from app.models import User
+from app.schemas import QRCreate
+import app.services.qr_items as qr_items
 
 
 def _make_engine_and_create_tables():

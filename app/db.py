@@ -13,7 +13,7 @@ from typing import Optional
 from sqlalchemy.engine import make_url
 from sqlmodel import Session, SQLModel, create_engine
 
-from config import settings
+from app.config import settings
 
 logger = logging.getLogger("qr_forge.db")
 

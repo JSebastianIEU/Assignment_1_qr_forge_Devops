@@ -7,9 +7,9 @@ from typing import List
 from fastapi import HTTPException, status
 from sqlmodel import Session, select
 
-from models import QRItem, User
-from schemas import QRCreate, QRPreviewResponse
-from services.qr import (
+from app.models import QRItem, User
+from app.schemas import QRCreate, QRPreviewResponse
+from app.services.qr import (
     QRConfig,
     QRPreview,
     encode_render,

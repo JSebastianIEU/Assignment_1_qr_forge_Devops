@@ -5,12 +5,12 @@ from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import FileResponse
 from sqlmodel import Session
 
-from config import settings
-from core.security import get_current_user
-from db import get_session
-from models import QRItem, User
-from schemas import QRCreate, QRPreviewResponse
-from services import qr_items
+from app.config import settings
+from app.core.security import get_current_user
+from app.db import get_session
+from app.models import QRItem, User
+from app.schemas import QRCreate, QRPreviewResponse
+from app.services import qr_items
 
 router = APIRouter(prefix="/api/qr", tags=["qr"])
 SVG_DIR = settings.assets_dir

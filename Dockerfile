@@ -52,5 +52,5 @@ USER app
 # Healthcheck to allow container orchestrators to probe readiness
 HEALTHCHECK --interval=30s --timeout=5s --retries=5 CMD curl -f http://localhost:$PORT/health || exit 1
 
-# Entrypoint script: run migrations then start the app with lifespan-managed FastAPI
-ENTRYPOINT ["/bin/sh", "-c", "python -m alembic upgrade head || echo 'migrations failed'; exec uvicorn server:app --host 0.0.0.0 --port $PORT --proxy-headers"]
+# Entrypoint: start the ASGI app (migrations run in CI/CD before deploy)
+ENTRYPOINT ["/bin/sh", "-c", "uvicorn app.server:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers"]

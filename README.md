@@ -1,4 +1,4 @@
-﻿# QR Forge
+# QR Forge
 
 QR Forge is a FastAPI application for generating and managing QR codes. This repository has been improved and automated for the DevOps assignment: better code quality, tests, CI/CD, deployment hygiene, monitoring, and documentation.
 
@@ -12,11 +12,11 @@ QR Forge is a FastAPI application for generating and managing QR codes. This rep
 - Monitoring: `/metrics` endpoint (Prometheus), example `monitoring/docker-compose.monitoring.yml` and a sample Grafana dashboard in `monitoring/grafana-dashboard.json`.
 
 ## Key files changed
-- `.github/workflows/ci.yaml` — enterprise CI with coverage gate, trivy scan, caching and matrix testing
-- `.github/workflows/cd.yaml` — deploy to Azure staging slot, run migrations from image, smoke tests and swap
-- `Dockerfile` — multi-stage hardened non-root image with HEALTHCHECK
-- `app.py`, `config.py`, `db.py` — clean startup (lifespan), DB pooling and Key Vault-aware configuration
-- `monitoring/*` — Prometheus + Grafana examples
+- `.github/workflows/ci.yaml` � enterprise CI with coverage gate, trivy scan, caching and matrix testing
+- `.github/workflows/cd.yaml` � deploy to Azure staging slot, run migrations from image, smoke tests and swap
+- `Dockerfile` � multi-stage hardened non-root image with HEALTHCHECK
+- `app.py`, `config.py`, `db.py` � clean startup (lifespan), DB pooling and Key Vault-aware configuration
+- `monitoring/*` � Prometheus + Grafana examples
 
 
 ## Prerequisites
@@ -72,7 +72,7 @@ Reasonable defaults are applied when not supplied; directories are created autom
 
 ### 5. Run the application
 ```bash
-uvicorn app:app --reload
+uvicorn app.main:app --reload
 ```
 - UI: http://127.0.0.1:8000/
 - API docs (Swagger): http://127.0.0.1:8000/docs
@@ -189,23 +189,33 @@ All protected routes require a bearer token (`Authorization: Bearer <token>`).
 ## Project structure
 ```
 .
-├── app.py                 # FastAPI entry point + route registration
-├── config.py              # Environment configuration
-├── core/                  # Auth/security helpers (password hashing, JWT)
-├── db.py                  # SQLModel engine + session factory
-├── models.py              # SQLModel tables (users, QR items)
-├── routers/               # Modular API routers (auth, users, qr, export)
-├── schemas.py             # Pydantic models / request & response schemas
-├── services/              # QR rendering utilities (SVG/PNG generation)
-├── static/                # CSS/JS/assets used by the UI
-├── storage.py             # Reserved for future storage helpers (currently stub)
-├── templates/             # HTML templates rendered by FastAPI
-├── tests/                 # Pytest suite (uses in-memory DB fixtures)
-├── assets/                # Shared icons used in the UI
-├── generated_svgs/        # Runtime SVG assets (ignored by git)
-├── generated_pngs/        # Runtime PNG assets (ignored by git)
-├── report/                # Final report and annex diagrams/mockups
-└── README.md
++-- app/                   # Application package
+�   +-- main.py            # FastAPI app + route registration
+�   +-- server.py          # ASGI entrypoint (uvicorn app.server:app)
+�   +-- config.py          # Environment configuration
+�   +-- db.py              # SQLModel engine + session factory
+�   +-- models.py          # SQLModel tables (users, QR items)
+�   +-- schemas.py         # Pydantic models / request & response schemas
+�   +-- core/              # Auth/security helpers (password hashing, JWT)
+�   +-- routers/           # Modular API routers (auth, users, qr, export)
+�   +-- services/          # QR rendering utilities (SVG/PNG generation)
+�   +-- monitoring/        # Metrics/observability helpers
+�   +-- home/              # Static marketing pages
+�   +-- static/            # CSS/JS/assets used in the UI
+�   +-- assets/            # Shared icons used in the UI
+�   +-- templates/         # HTML templates rendered by FastAPI
+�   +-- generated_svgs/    # Runtime SVG assets (ignored by git)
+�   +-- generated_pngs/    # Runtime PNG assets (ignored by git)
++-- alembic/               # Alembic migrations
++-- alembic.ini
++-- Dockerfile
++-- requirements.txt
++-- requirements-dev.txt
++-- tests/                 # Pytest suite (uses in-memory DB fixtures)
++-- logs/                  # Local logs (not needed in production)
++-- .github/workflows/     # CI/CD definitions
++-- report/                # Final report and annex diagrams/mockups
++-- README.md
 ```
 
 ## Database migrations
@@ -238,4 +248,5 @@ This project uses Alembic to manage schema migrations for the SQLModel models.
 Notes:
 - For quick local work you can generate migration scripts using an SQLite URL (for example `sqlite:///alembic_tmp.db`) and commit the generated files. Apply them later against your production Postgres instance once connectivity is available.
 - Remember to remove or tighten temporary firewall rules you created to allow your developer IP when finished (or prefer a private connectivity solution like Private Link or managed identities).
+
 

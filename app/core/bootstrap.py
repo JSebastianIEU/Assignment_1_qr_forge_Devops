@@ -8,7 +8,7 @@ for CI runners with restricted permissions).
 from pathlib import Path
 from typing import Iterable
 
-from config import settings
+from app.config import settings
 
 
 def ensure_dirs(s=None) -> Iterable[Path]:

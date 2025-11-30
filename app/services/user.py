@@ -5,9 +5,9 @@ from pathlib import Path
 
 from sqlmodel import Session, select
 
-from core.security import get_password_hash
-from models import QRItem, User
-from schemas import UserUpdate
+from app.core.security import get_password_hash
+from app.models import QRItem, User
+from app.schemas import UserUpdate
 
 
 def update_profile(session: Session, current_user: User, payload: UserUpdate) -> User:

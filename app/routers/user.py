@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
-from core.security import get_current_user
-from db import get_session
-from models import User
-from schemas import UserRead, UserUpdate
-from services.user import delete_user_and_assets, update_profile
+from app.core.security import get_current_user
+from app.db import get_session
+from app.models import User
+from app.schemas import UserRead, UserUpdate
+from app.services.user import delete_user_and_assets, update_profile
 
 router = APIRouter(prefix="/api/user", tags=["users"])
 

@@ -1,7 +1,7 @@
 import base64
 from pathlib import Path
 
-from services.qr import QRConfig, encode_render, generate_qr_assets, render_qr
+from app.services.qr import QRConfig, encode_render, generate_qr_assets, render_qr
 
 
 def _config() -> QRConfig:

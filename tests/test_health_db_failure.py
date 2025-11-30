@@ -3,7 +3,7 @@
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import SQLAlchemyError
 
-import app as application
+from app.main import app as application
 
 
 class BadEngine:
@@ -13,8 +13,8 @@ class BadEngine:
 
 def test_health_returns_503_on_db_failure(monkeypatch):
     """When the DB engine cannot connect, /health returns 503."""
-    monkeypatch.setattr("db.engine", BadEngine())
-    client = TestClient(application.app)
+    monkeypatch.setattr("app.db.engine", BadEngine())
+    client = TestClient(application)
     resp = client.get("/health")
     assert resp.status_code == 503
     assert "DB connectivity" in resp.text or "Health check failed" in resp.text

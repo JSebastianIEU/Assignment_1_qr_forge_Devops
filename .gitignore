@@ -209,5 +209,7 @@ __marimo__/
 # Generated QR assets
 generated_svgs/
 generated_pngs/
+app/generated_svgs/
+app/generated_pngs/
 qr.db
 

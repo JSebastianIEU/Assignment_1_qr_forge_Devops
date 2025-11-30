@@ -11,8 +11,8 @@ from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
 from sqlmodel import Session, SQLModel, create_engine  # noqa: E402
 
-from app import app  # noqa: E402
-from db import get_session  # noqa: E402
+from app.main import app  # noqa: E402
+from app.db import get_session  # noqa: E402
 
 TEST_DATABASE_URL = "sqlite://"
 
@@ -47,7 +47,7 @@ def client(tmp_path: Path, monkeypatch, engine) -> TestClient:
 
     app.dependency_overrides[get_session] = override_get_session
 
-    from routers import qr
+    from app.routers import qr
 
     svg_dir = tmp_path / "svg"
     png_dir = tmp_path / "png"

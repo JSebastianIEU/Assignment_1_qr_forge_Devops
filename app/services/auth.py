@@ -5,9 +5,13 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlmodel import Session, select
 
-from core.security import create_access_token, get_password_hash, verify_password
-from models import User
-from schemas import Token, UserCreate, UserLogin
+from app.core.security import (
+    create_access_token,
+    get_password_hash,
+    verify_password,
+)
+from app.models import User
+from app.schemas import Token, UserCreate, UserLogin
 
 
 def _normalize_email(email: str) -> str:

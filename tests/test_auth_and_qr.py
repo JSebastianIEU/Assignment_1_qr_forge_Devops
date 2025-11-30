@@ -3,7 +3,7 @@ import base64
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
-from models import QRItem, User
+from app.models import QRItem, User
 
 
 def _auth_headers(

@@ -6,7 +6,7 @@ from sqlmodel import SQLModel
 
 # Import project models only to populate metadata; avoid importing application
 # config or db modules which may have side effects (like creating directories).
-import models  # noqa: F401
+import app.models  # noqa: F401
 from alembic import context
 
 # This is the Alembic Config object. It provides access to the

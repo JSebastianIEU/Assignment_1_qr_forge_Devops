@@ -6,14 +6,14 @@ from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlmodel import Session, SQLModel
 
-from core.security import (
+from app.core.security import (
     create_access_token,
     get_current_user,
     get_password_hash,
     verify_password,
 )
-from db import get_engine
-from models import User
+from app.db import get_engine
+from app.models import User
 
 
 @pytest.fixture()
