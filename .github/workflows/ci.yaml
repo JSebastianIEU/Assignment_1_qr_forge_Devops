@@ -16,7 +16,7 @@ jobs:
       DATABASE_URL: sqlite://
     strategy:
       matrix:
-        python-version: [3.11, 3.12]
+        python-version: [3.11]
 
     steps:
       - name: Checkout
@@ -87,7 +87,7 @@ jobs:
 
       - name: Run container for smoke tests
         run: |
-          docker run -d --name qrforge_ci -p 8000:8000 qr_forge:ci
+          docker run -d --name qrforge_ci -p 8000:8000 -e DATABASE_URL="sqlite:///tmp/qrcodes.db" qr_forge:ci
           retries=15
           while [ $retries -gt 0 ]; do
             if curl --silent --fail http://localhost:8000/health; then

@@ -44,6 +44,10 @@ jobs:
 
       - name: Configure production container image
         run: |
+          az webapp config appsettings set \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --name ${{ secrets.AZURE_WEBAPP_NAME }} \
+            --settings POSTGRES_URL="${{ secrets.POSTGRES_URL }}"
           IMAGE="${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.AZURE_WEBAPP_NAME }}:${{ env.IMAGE_TAG }}"
           az webapp config container set \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
