@@ -1,0 +1,92 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+env:
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.AZURE_CREDENTIALS }}" ] || \
+             [ -z "${{ secrets.ACR_NAME }}" ] || \
+             [ -z "${{ secrets.AZURE_RESOURCE_GROUP }}" ] || \
+             [ -z "${{ secrets.AZURE_WEBAPP_NAME }}" ] || \
+             [ -z "${{ secrets.AZURE_KEYVAULT_NAME }}" ]; then
+            echo "Missing required secrets: AZURE_CREDENTIALS, ACR_NAME, AZURE_RESOURCE_GROUP, AZURE_WEBAPP_NAME, AZURE_KEYVAULT_NAME" >&2
+            exit 1
+          fi
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: ACR Login
+        run: az acr login --name ${{ secrets.ACR_NAME }}
+
+      - name: Build & push image to ACR (az acr build)
+        run: |
+          az acr build --registry ${{ secrets.ACR_NAME }} --image "${{ secrets.AZURE_WEBAPP_NAME }}:${{ env.IMAGE_TAG }}" .
+
+      - name: Ensure staging slot exists (idempotent)
+        run: echo "Skipping slot creation; deploying direct to production"
+
+      - name: Configure production container image
+        run: |
+          IMAGE="${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.AZURE_WEBAPP_NAME }}:${{ env.IMAGE_TAG }}"
+          az webapp config container set \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --name ${{ secrets.AZURE_WEBAPP_NAME }} \
+            --container-image-name "$IMAGE"
+
+      - name: Run alembic migrations from built image
+        run: |
+          IMAGE="${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.AZURE_WEBAPP_NAME }}:${{ env.IMAGE_TAG }}"
+          az acr login --name ${{ secrets.ACR_NAME }}
+          docker pull "$IMAGE"
+          POSTGRES_URL=$(az keyvault secret show --vault-name "${{ secrets.AZURE_KEYVAULT_NAME }}" --name POSTGRES_URL --query value -o tsv)
+          if [ -z "$POSTGRES_URL" ]; then
+            echo "POSTGRES_URL secret not found in Key Vault ${{ secrets.AZURE_KEYVAULT_NAME }}" >&2
+            exit 1
+          fi
+          docker run --rm -e POSTGRES_URL="$POSTGRES_URL" "$IMAGE" alembic upgrade head
+
+      - name: Smoke test production
+        run: |
+          HOST=$(az webapp show --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_WEBAPP_NAME }} --query defaultHostName -o tsv)
+          if [ -z "$HOST" ] || [ "$HOST" = "null" ]; then
+            echo "ERROR: could not discover production host" >&2
+            exit 1
+          fi
+          APP_URL="https://$HOST/health"
+          echo "Checking $APP_URL"
+          for i in $(seq 1 30); do
+            status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$APP_URL" || echo "000")
+            echo "Attempt $i: $status"
+            if [ "$status" = "200" ]; then
+              echo "Production healthy"
+              break
+            fi
+            sleep 5
+          done
+          if [ "$status" != "200" ]; then
+            echo "Production smoke test failed" >&2
+            exit 1
+          fi
+
+      - name: Post-deploy verification
+        run: |
+          PROD_URL="https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net/health"
+          echo "Checking $PROD_URL"
+          curl -f "$PROD_URL"
