@@ -48,6 +48,8 @@ except Exception:
     CONTENT_TYPE_LATEST = "text/plain; version=0.0.4; charset=utf-8"
 
 BASE_DIR = Path(__file__).parent
+SPA_DIR = BASE_DIR / "static-frontend"
+SPA_INDEX = SPA_DIR / "index.html"
 
 TAGS_METADATA = [
     {
@@ -226,11 +228,26 @@ app.include_router(export.router)
 
 app.mount("/assets", StaticFiles(directory=str(BASE_DIR / "assets")), name="assets")
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+if SPA_DIR.exists():
+    app.mount(
+        "/frontend-assets",
+        StaticFiles(directory=str(SPA_DIR / "frontend-assets")),
+        name="spa-assets",
+    )
 
 
 __all__ = ("app",)
 
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+
+def serve_spa_or_template(request: Request, template_name: str, active_page: str) -> HTMLResponse:
+    if SPA_INDEX.exists():
+        return FileResponse(SPA_INDEX)
+    return templates.TemplateResponse(
+        template_name,
+        {"request": request, "active_page": active_page},
+    )
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -242,10 +259,7 @@ def favicon() -> FileResponse:
     "/", response_class=HTMLResponse, name="home", summary="Serve the landing page"
 )
 def home(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(
-        "home.html",
-        {"request": request, "active_page": "home"},
-    )
+    return serve_spa_or_template(request, "home.html", "home")
 
 
 @app.get(
@@ -255,10 +269,7 @@ def home(request: Request) -> HTMLResponse:
     summary="Serve the QR generator UI",
 )
 def generator_page(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(
-        "index.html",
-        {"request": request, "active_page": "generator"},
-    )
+    return serve_spa_or_template(request, "index.html", "generator")
 
 
 @app.get(
@@ -268,10 +279,7 @@ def generator_page(request: Request) -> HTMLResponse:
     summary="Serve the saved history UI",
 )
 def history_page(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(
-        "history.html",
-        {"request": request, "active_page": "history"},
-    )
+    return serve_spa_or_template(request, "history.html", "history")
 
 
 @app.get(
@@ -281,10 +289,7 @@ def history_page(request: Request) -> HTMLResponse:
     summary="Serve the profile management UI",
 )
 def profile_page(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(
-        "profile.html",
-        {"request": request, "active_page": "profile"},
-    )
+    return serve_spa_or_template(request, "profile.html", "profile")
 
 
 @app.get(
@@ -294,10 +299,7 @@ def profile_page(request: Request) -> HTMLResponse:
     summary="Serve the login UI",
 )
 def login_page(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(
-        "login.html",
-        {"request": request, "active_page": "login"},
-    )
+    return serve_spa_or_template(request, "login.html", "login")
 
 
 @app.get(
@@ -307,10 +309,18 @@ def login_page(request: Request) -> HTMLResponse:
     summary="Serve the signup UI",
 )
 def signup_page(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(
-        "signup.html",
-        {"request": request, "active_page": "signup"},
-    )
+    return serve_spa_or_template(request, "signup.html", "signup")
+
+
+if SPA_INDEX.exists():
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def spa_catch_all(full_path: str):
+        if full_path.startswith(("api", "metrics", "health", "docs", "openapi")):
+            return PlainTextResponse(
+                content="Not Found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        return FileResponse(SPA_INDEX)
 
 
 @app.get("/health", summary="Simple health check")

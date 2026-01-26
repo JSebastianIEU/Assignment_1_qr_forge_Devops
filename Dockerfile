@@ -1,24 +1,32 @@
 # syntax=docker/dockerfile:1
 
 ############################################################
-# Builder stage: build wheels for runtime dependencies
+# Stage 1: Build React SPA
 ############################################################
-FROM python:3.11-slim AS builder
+FROM node:20-alpine AS frontend-build
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+############################################################
+# Stage 2: Build Python wheels for reproducible installs
+############################################################
+FROM python:3.11-slim AS python-builder
 WORKDIR /wheels_build
 
 ENV PIP_NO_CACHE_DIR=1
 COPY requirements.txt pyproject.toml ./
 
-# Install build deps and create wheels for runtime requirements
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends build-essential curl ca-certificates \
 	&& rm -rf /var/lib/apt/lists/* \
 	&& python -m pip install --upgrade pip setuptools wheel \
 	&& python -m pip wheel --wheel-dir=/wheels -r requirements.txt
 
-
 ############################################################
-# Final stage: minimal runtime image
+# Final stage: runtime image
 ############################################################
 FROM python:3.11-slim
 
@@ -31,25 +39,34 @@ RUN groupadd --system app && useradd --system --gid app --create-home --home-dir
 
 WORKDIR /app
 
-# Copy wheels and install only runtime deps from wheels
-COPY --from=builder /wheels /wheels
+# Basic runtime deps (curl used in healthcheck)
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends curl ca-certificates \
+	&& rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies from wheels
+COPY --from=python-builder /wheels /wheels
 COPY requirements.txt ./
 RUN python -m pip install --no-cache-dir --no-index --find-links=/wheels -r requirements.txt \
 	&& rm -rf /wheels
 
-# Copy application code
-COPY . /app
+# Copy backend code
+COPY app/ ./app/
+COPY alembic/ ./alembic/
+COPY alembic.ini ./
 
-# Ensure the non-root user owns the application directory and asset folders
+# Copy built frontend assets
+COPY --from=frontend-build /app/frontend/dist ./app/static-frontend
+
+# Ensure ownership
 RUN chown -R app:app /app /home/app || true
 
 ENV PORT=8000
 EXPOSE 8000
 
-# Use non-root user
 USER app
 
-# Healthcheck to allow container orchestrators to probe readiness
+# Healthcheck to allow orchestrators to probe readiness
 HEALTHCHECK --interval=30s --timeout=5s --retries=5 CMD curl -f http://localhost:$PORT/health || exit 1
 
 # Entrypoint: start the ASGI app (migrations run in CI/CD before deploy)

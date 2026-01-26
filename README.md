@@ -46,6 +46,7 @@ QR Forge is a FastAPI application for generating and managing QR codes. This sec
 - `Dockerfile` - multi-stage, non-root image with healthcheck and lean runtime stage.
 - `app/main.py`, `app/config.py`, `app/db.py` - FastAPI app factory, settings, and SQLModel engine/session factory.
 - `monitoring/` - Prometheus compose file and Grafana dashboard JSON.
+- `frontend/` - React 18 + TypeScript + Tailwind SPA served by FastAPI (Vite build output copied to `app/static-frontend`).
 
 ## Prerequisites
 - Python 3.11+ on PATH
@@ -101,6 +102,14 @@ uvicorn app.main:app --reload
 - Metrics: http://127.0.0.1:8000/metrics
 
 Create an account via the UI or `/api/auth/signup`, then try the generator, history, and profile sections.
+
+Frontend (React SPA)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+- Vite server at http://localhost:3000 with `/api` proxied to `http://localhost:8000`.
 
 6) Tests
 ```bash

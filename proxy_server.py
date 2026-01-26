@@ -1,4 +1,5 @@
 """HTTPS reverse proxy to ACI backend with full request/response handling"""
+
 import os
 import logging
 import httpx
@@ -58,9 +59,7 @@ async def forward_request(
         if should_forward_header(name)
     }
 
-    logger.info(
-        f"{method} {path} -> {backend_url} (body={len(body) if body else 0}B)"
-    )
+    logger.info(f"{method} {path} -> {backend_url} (body={len(body) if body else 0}B)")
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -154,5 +153,3 @@ if __name__ == "__main__":
         port=port,
         log_level="info",
     )
-
-
