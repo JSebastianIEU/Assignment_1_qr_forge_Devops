@@ -179,3 +179,50 @@ jobs:
           done
           echo "⚠️ Health check failed, but deployment may still be starting" >&2
           exit 0
+
+      - name: Build HTTPS proxy image
+        run: |
+          docker build -f Dockerfile.https-proxy -t ${{ secrets.ACR_NAME }}.azurecr.io/qrforge-https-proxy:latest .
+
+      - name: Push proxy image to ACR
+        run: |
+          docker push ${{ secrets.ACR_NAME }}.azurecr.io/qrforge-https-proxy:latest
+
+      - name: Deploy HTTPS proxy to App Service
+        run: |
+          az webapp create \
+            --resource-group ${{ secrets.RESOURCE_GROUP }} \
+            --plan qrforge-proxy-plan \
+            --name qrforge-https-proxy \
+            --deployment-container-image-name ${{ secrets.ACR_NAME }}.azurecr.io/qrforge-https-proxy:latest || true
+          
+          az webapp config container set \
+            --resource-group ${{ secrets.RESOURCE_GROUP }} \
+            --name qrforge-https-proxy \
+            --docker-custom-image-name ${{ secrets.ACR_NAME }}.azurecr.io/qrforge-https-proxy:latest \
+            --docker-registry-server-url https://${{ secrets.ACR_NAME }}.azurecr.io \
+            --docker-registry-server-user ${{ secrets.ACR_NAME }} \
+            --docker-registry-server-password ${{ secrets.ACR_PASSWORD }}
+          
+          az webapp config appsettings set \
+            --resource-group ${{ secrets.RESOURCE_GROUP }} \
+            --name qrforge-https-proxy \
+            --settings WEBSITES_PORT=8000
+
+      - name: Test HTTPS proxy
+        run: |
+          PROXY_URL="https://qrforge-https-proxy.azurewebsites.net"
+          echo "Waiting 30s for proxy to start..."
+          sleep 30
+          echo "Testing proxy at $PROXY_URL"
+          for i in $(seq 1 10); do
+            status=$(curl -s -o /dev/null -w "%{http_code}" -k --max-time 10 "$PROXY_URL" || echo "000")
+            echo "Attempt $i: $status"
+            if [ "$status" = "200" ]; then
+              echo "✓ HTTPS proxy is healthy"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "⚠️ Proxy health check failed" >&2
+          exit 0
