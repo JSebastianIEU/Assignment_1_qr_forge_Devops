@@ -13,22 +13,17 @@ export const QRPreview = ({ svgData, pngData }: QRPreviewProps) => {
 
   if (!imageSrc) {
     return (
-      <div className="flex flex-col items-center justify-center h-full rounded-xl border-2 border-dashed border-slate-200 bg-gradient-to-br from-slate-50/50 to-white p-4">
+      <div className="flex flex-col items-center justify-center h-full w-full rounded-xl border-2 border-dashed border-slate-200 bg-gradient-to-br from-slate-50/50 to-white p-4">
         <svg
-          className="w-10 h-10 text-slate-300 mb-2"
-          fill="none"
+          className="w-20 h-20 text-slate-300 mb-2"
+          fill="currentColor"
           viewBox="0 0 24 24"
-          stroke="currentColor"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-          />
+          <path d="M3 3h7v7H3V3zm2 2v3h3V5H5zM3 14h7v7H3v-7zm2 2v3h3v-3H5zM14 3h7v7h-7V3zm2 2v3h3V5h-3zM14 14h3v3h-3v-3zm5 0h2v2h-2v-2zm0 3h2v2h-2v-2zm-3 2h2v2h-2v-2z"/>
         </svg>
-        <p className="text-xs font-medium text-slate-500">No preview yet</p>
-        <p className="text-xs text-slate-400 mt-0.5">Click "View Preview" to generate</p>
+        <p className="text-[10px] text-slate-400 text-center leading-tight">
+          QR preview<br />will appear here
+        </p>
       </div>
     )
   }
