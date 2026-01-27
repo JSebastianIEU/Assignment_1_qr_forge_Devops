@@ -51,9 +51,9 @@ RUN python -m pip install --no-cache-dir --no-index --find-links=/wheels -r requ
 	&& rm -rf /wheels
 
 # Copy backend code
-COPY app/ ./app/
-COPY alembic/ ./alembic/
-COPY alembic.ini ./
+COPY src/app/ ./app/
+COPY src/alembic/ ./alembic/
+COPY src/alembic.ini ./
 
 # Copy built frontend assets
 COPY --from=frontend-build /app/frontend/dist ./app/static-frontend

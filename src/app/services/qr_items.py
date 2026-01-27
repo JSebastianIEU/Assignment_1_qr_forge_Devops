@@ -42,17 +42,17 @@ def create_qr_item(
 ) -> QRItem:
     now = datetime.now(timezone.utc)
     storage = get_storage_backend()
-    
+
     # Generate QR code
     config = build_config(payload)
     render = render_qr(config)
-    
+
     # Generate unique filenames
     import uuid
     base_name = str(uuid.uuid4())
     svg_filename = f"{base_name}.svg"
     png_filename = f"{base_name}.png"
-    
+
     # Save to storage (returns URL for blob storage, path for local)
     svg_path = storage.save_file(render.svg_text, svg_filename, "image/svg+xml")
     png_path = storage.save_file(render.png_bytes, png_filename, "image/png")
@@ -111,24 +111,24 @@ def download_path(
     session: Session, current_user: User, item_id: int, format: str
 ) -> Path | None:
     """Get filesystem path for download (local storage only).
-    
+
     Returns None for blob storage (download endpoint will redirect to blob URL).
     """
     item = get_owned_item(session, current_user, item_id)
     storage = get_storage_backend()
-    
+
     path_str = item.svg_path if format == "svg" else item.png_path
     if not path_str:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"{format.upper()} not available"
         )
-    
+
     # For blob storage, return None (will use URL redirect)
     file_path = storage.get_file_path(path_str)
     if file_path is None:
         return None
-    
+
     # For local storage, verify file exists
     if not file_path.exists():
         raise HTTPException(
@@ -154,33 +154,33 @@ def get_download_url(
 
 def path_to_url(path_or_url: str) -> str:
     """Convert filesystem path to URL, or return blob URL as-is.
-    
+
     For Azure Blob Storage: returns the URL directly (already public).
     For local filesystem: converts to /qr-assets/svg/filename format.
     """
     if not path_or_url:
         return path_or_url
-    
+
     # If it's already a URL (blob storage), return as-is
     if path_or_url.startswith(("http://", "https://")):
         return path_or_url
-    
+
     # For local filesystem, convert to relative URL
     path = Path(path_or_url)
     filename = path.name
-    
+
     # Check if it's in the SVG assets directory
     try:
         path.relative_to(settings.assets_dir)
         return f"/qr-assets/svg/{filename}"
     except ValueError:
         pass
-    
+
     try:
         path.relative_to(settings.temp_dir)
         return f"/qr-assets/png/{filename}"
     except ValueError:
         pass
-    
+
     # If we can't map it, return as-is (shouldn't happen in normal operation)
-    return filesystem_path
+    return path_or_url

@@ -1,11 +1,9 @@
-from pathlib import Path
 from typing import List
 
 from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import FileResponse, RedirectResponse
 from sqlmodel import Session
 
-from app.config import settings
 from app.core.security import get_current_user
 from app.db import get_session
 from app.models import QRItem, User
@@ -118,12 +116,12 @@ def download_qr(
 ):
     # Try to get filesystem path (local storage)
     path = qr_items.download_path(session, current_user, item_id, format)
-    
+
     if path is None:
         # Blob storage: redirect to blob URL
         url = qr_items.get_download_url(session, current_user, item_id, format)
         return RedirectResponse(url=url)
-    
+
     # Local storage: serve file directly
     media_type = "image/svg+xml" if format == "svg" else "image/png"
     return FileResponse(path, media_type=media_type, filename=f"qr-{item_id}.{format}")
