@@ -6,10 +6,15 @@
 FROM node:20-alpine AS frontend-build
 WORKDIR /build/frontend
 
-# Copy the entire frontend (node_modules is excluded by .dockerignore)
-COPY ./src/frontend/ ./
+# Copy lockfiles first to leverage Docker layer caching
+COPY ./src/frontend/package.json ./package.json
+COPY ./src/frontend/package-lock.json ./package-lock.json
 
 RUN npm ci
+
+# Copy the rest of the frontend (node_modules/dist are excluded via .dockerignore)
+COPY ./src/frontend/ ./
+
 RUN npm run build
 
 ############################################################

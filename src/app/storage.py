@@ -67,7 +67,16 @@ class LocalFilesystemStorage(StorageBackend):
 class AzureBlobStorage(StorageBackend):
     """Azure Blob Storage backend for production."""
 
-    def __init__(self, connection_string: str, container_name: str):
+    def __init__(self, connection_string: str | None, container_name: str):
+        # Guard: connection string is mandatory
+        if not connection_string:
+            raise RuntimeError(
+                "AZURE_STORAGE_CONNECTION_STRING is required for Azure Blob Storage"
+            )
+
+        self.connection_string = connection_string
+        self.container_name = container_name
+
         try:
             from azure.storage.blob import BlobServiceClient, ContentSettings
 
@@ -78,20 +87,22 @@ class AzureBlobStorage(StorageBackend):
                 "azure-storage-blob package required for Azure Blob Storage. "
                 "Install with: pip install azure-storage-blob"
             ) from None
-            client = self.BlobServiceClient.from_connection_string(
+
+        # Initialise client and ensure container exists
+        try:
+            self._client = self.BlobServiceClient.from_connection_string(
                 self.connection_string
             )
-            container_client = client.get_container_client(self.container_name)
+            container_client = self._client.get_container_client(self.container_name)
             if not container_client.exists():
                 container_client.create_container(public_access="blob")
-                logger.info(f"Created blob container: {self.container_name}")
+                logger.info("Created blob container: %s", self.container_name)
         except Exception as e:
-            logger.error(f"Failed to ensure container exists: {e}")
+            logger.error("Failed to ensure Azure blob container exists: %s", e)
 
     def save_file(self, content: str | bytes, filename: str, content_type: str) -> str:
         """Upload file to blob storage and return public URL."""
-        client = self.BlobServiceClient.from_connection_string(self.connection_string)
-        blob_client = client.get_blob_client(
+        blob_client = self._client.get_blob_client(
             container=self.container_name, blob=filename
         )
 
@@ -113,10 +124,7 @@ class AzureBlobStorage(StorageBackend):
                 path_or_url.split("/")[-1] if "/" in path_or_url else path_or_url
             )
 
-            client = self.BlobServiceClient.from_connection_string(
-                self.connection_string
-            )
-            blob_client = client.get_blob_client(
+            blob_client = self._client.get_blob_client(
                 container=self.container_name, blob=blob_name
             )
             blob_client.delete_blob()
