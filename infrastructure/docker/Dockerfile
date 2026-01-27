@@ -11,6 +11,7 @@ COPY . .
 
 # Build frontend from its directory
 WORKDIR /build/src/frontend
+RUN test -f package.json || (echo "package.json not found in $(pwd)"; ls -la; ls -la ..; exit 1)
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 RUN npm run build
 
