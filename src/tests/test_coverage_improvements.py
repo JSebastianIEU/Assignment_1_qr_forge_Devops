@@ -2,10 +2,8 @@
 
 import logging
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
-from fastapi import status
 
 from app.core.logging import configure_logging, get_logger
 from app.core.security import get_password_hash, verify_password
@@ -165,7 +163,6 @@ def test_security_get_current_user():
 
 def test_auth_normalize_email(engine, prepare_database):
     """Test email normalization in auth service."""
-    from sqlmodel import Session
 
     from app.services.auth import _normalize_email
 

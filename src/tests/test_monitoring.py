@@ -13,7 +13,11 @@ class TestPrometheusConfiguration:
     @pytest.fixture
     def prometheus_config_path(self):
         """Return the path to prometheus.yml."""
-        base_path = Path(__file__).parent.parent.parent / "infrastructure" / "monitoring"
+        base_path = (
+            Path(__file__).parent.parent.parent
+            / "infrastructure"
+            / "monitoring"
+        )
         return base_path / "prometheus.yml"
 
     @pytest.fixture
@@ -64,14 +68,21 @@ class TestPrometheusConfiguration:
                 assert isinstance(static_configs, list)
                 # At least one static config should have targets
                 has_targets = any(
-                    "targets" in config and len(config["targets"]) > 0 for config in static_configs
+                    "targets" in config and len(config["targets"]) > 0
+                    for config in static_configs
                 )
-                assert has_targets, f"Scrape config {scrape_config.get('job_name')} has no targets"
+                job_name = scrape_config.get("job_name")
+                assert has_targets, f"Scrape config {job_name} has no targets"
 
     def test_prometheus_metrics_path_configured(self, prometheus_config):
         """Test that metrics_path is configured in scrape configs."""
+        scrape_configs = prometheus_config["scrape_configs"]
         qr_forge_job = next(
-            (job for job in prometheus_config["scrape_configs"] if job.get("job_name") == "qr_forge_app"),
+            (
+                job
+                for job in scrape_configs
+                if job.get("job_name") == "qr_forge_app"
+            ),
             None,
         )
         assert qr_forge_job is not None, "qr_forge_app job not found"
@@ -85,7 +96,11 @@ class TestGrafanaDashboard:
     @pytest.fixture
     def grafana_dashboard_path(self):
         """Return the path to grafana-dashboard.json."""
-        base_path = Path(__file__).parent.parent.parent / "infrastructure" / "monitoring"
+        base_path = (
+            Path(__file__).parent.parent.parent
+            / "infrastructure"
+            / "monitoring"
+        )
         return base_path / "grafana-dashboard.json"
 
     @pytest.fixture
@@ -120,15 +135,14 @@ class TestGrafanaDashboard:
         """Test that panels have required fields (type, title)."""
         for dashboard in grafana_dashboard:
             for panel in dashboard["panels"]:
-                assert "type" in panel, f"Panel missing 'type' in {dashboard['title']}"
-                assert "title" in panel, f"Panel missing 'title' in {dashboard['title']}"
+                dash_title = dashboard["title"]
+                assert "type" in panel, f"Panel missing 'type' in {dash_title}"
+                assert "title" in panel, f"Panel missing 'title' in {dash_title}"
                 assert isinstance(panel["type"], str)
                 assert isinstance(panel["title"], str)
 
     def test_grafana_panel_types_valid(self, grafana_dashboard):
         """Test that panel types are valid Grafana types."""
-        valid_types = {"stat", "graph", "gauge", "table", "singlestat", "worldmap-panel"}
-
         for dashboard in grafana_dashboard:
             for panel in dashboard["panels"]:
                 panel_type = panel.get("type", "").lower()
@@ -160,7 +174,11 @@ class TestMonitoringDockerCompose:
     @pytest.fixture
     def docker_compose_path(self):
         """Return the path to docker-compose.monitoring.yml."""
-        base_path = Path(__file__).parent.parent.parent / "infrastructure" / "monitoring"
+        base_path = (
+            Path(__file__).parent.parent.parent
+            / "infrastructure"
+            / "monitoring"
+        )
         return base_path / "docker-compose.monitoring.yml"
 
     @pytest.fixture
@@ -204,7 +222,7 @@ class TestMonitoringDockerCompose:
         """Test that services have port mappings."""
         services = docker_compose_config.get("services", {})
 
-        for service_name, service_config in services.items():
+        for _service_name, service_config in services.items():
             if "ports" in service_config:
                 ports = service_config["ports"]
                 assert isinstance(ports, list)
@@ -216,7 +234,11 @@ class TestMonitoringIntegration:
 
     def test_prometheus_and_grafana_configs_compatible(self):
         """Test that Prometheus and Grafana configs reference compatible metrics."""
-        base_path = Path(__file__).parent.parent.parent / "infrastructure" / "monitoring"
+        base_path = (
+            Path(__file__).parent.parent.parent
+            / "infrastructure"
+            / "monitoring"
+        )
 
         prometheus_path = base_path / "prometheus.yml"
         grafana_path = base_path / "grafana-dashboard.json"

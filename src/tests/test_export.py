@@ -1,6 +1,5 @@
 """Tests for export API routes."""
 
-import pytest
 from app.routers import export
 
 

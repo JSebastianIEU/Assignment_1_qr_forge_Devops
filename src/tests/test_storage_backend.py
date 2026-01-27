@@ -1,8 +1,6 @@
 """Tests for storage backend abstraction (local filesystem and Azure Blob)."""
 
-import os
 from pathlib import Path
-from unittest import mock
 
 import pytest
 
@@ -104,7 +102,9 @@ class TestLocalFilesystemStorage:
     def test_local_storage_save_large_file(self, storage):
         """Test LocalFilesystemStorage handles large files."""
         large_content = b"x" * (5 * 1024 * 1024)  # 5MB
-        file_url = storage.save_file(large_content, "large_test.bin", "application/octet-stream")
+        file_url = storage.save_file(
+            large_content, "large_test.bin", "application/octet-stream"
+        )
 
         file_path = Path(file_url)
         assert file_path.exists()
@@ -118,7 +118,7 @@ class TestAzureBlobStorage:
         """Test AzureBlobStorage requires connection string."""
         with pytest.raises(RuntimeError):
             # Tries to import BlobServiceClient when not available
-            storage = AzureBlobStorage(
+            AzureBlobStorage(
                 connection_string=None,
                 container_name="test",
             )
@@ -175,7 +175,9 @@ class TestStoragePathHandling:
     def test_storage_prevents_directory_traversal(self, storage):
         """Test that storage prevents directory traversal attacks."""
         # Try to save file outside base_dir using ..
-        file_url = storage.save_file(b"should not escape", "../outside.txt", "text/plain")
+        file_url = storage.save_file(
+            b"should not escape", "../outside.txt", "text/plain"
+        )
 
         # File should still be inside base_dir
         assert str(file_url).startswith(str(storage.base_dir))

@@ -5,10 +5,13 @@
 ############################################################
 FROM node:20-alpine AS frontend-build
 WORKDIR /build/frontend
-COPY src/frontend/package.json ./
-COPY src/frontend/package-lock.json* ./
-RUN npm install
-COPY src/frontend/ ./
+
+# Copy package files from the workspace root (context is project root)
+COPY ./src/frontend/package.json .
+COPY ./src/frontend/package-lock.json* .
+
+RUN npm install --frozen-lockfile
+COPY ./src/frontend/ .
 RUN npm run build
 
 ############################################################
@@ -18,7 +21,7 @@ FROM python:3.11-slim AS python-builder
 WORKDIR /wheels_build
 
 ENV PIP_NO_CACHE_DIR=1
-COPY requirements.txt pyproject.toml ./
+COPY ./requirements.txt ./pyproject.toml ./
 
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends build-essential curl ca-certificates \
@@ -47,17 +50,17 @@ RUN apt-get update \
 
 # Install Python dependencies from wheels
 COPY --from=python-builder /wheels /wheels
-COPY requirements.txt ./
+COPY ./requirements.txt .
 RUN python -m pip install --no-cache-dir --no-index --find-links=/wheels -r requirements.txt \
 	&& rm -rf /wheels
 
-# Copy backend code
-COPY src/app/ ./app/
-COPY src/alembic/ ./alembic/
-COPY src/alembic.ini ./
+# Copy backend code (using explicit paths from project root)
+COPY ./src/app/ ./app/
+COPY ./src/alembic/ ./alembic/
+COPY ./src/alembic.ini .
 
 # Copy built frontend assets
-COPY --from=frontend-build /app/frontend/dist ./app/static-frontend
+COPY --from=frontend-build /build/frontend/dist ./app/static-frontend
 
 # Ensure ownership
 RUN chown -R app:app /app /home/app || true

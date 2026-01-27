@@ -6,10 +6,7 @@ and the health endpoint is verified to work in production.
 """
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy.exc import SQLAlchemyError
 
-from app.main import app as application
 
 
 @pytest.mark.skip(reason="Health endpoint routing issue with TestClient")

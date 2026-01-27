@@ -49,7 +49,7 @@ class TestBootstrap:
         test_settings.temp_dir = str(tmp_path / "temp")
 
         # Should not raise, even if one path fails
-        created = list(ensure_dirs(test_settings))
+        list(ensure_dirs(test_settings))
         # temp_dir should still be created
         assert Path(test_settings.temp_dir).exists()
 
@@ -150,7 +150,8 @@ class TestDatabase:
         with engine.connect() as conn:
             result = conn.execute(
                 text(
-                    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';"
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                    " AND name NOT LIKE 'sqlite_%';"
                 )
             )
             tables = result.fetchall()
