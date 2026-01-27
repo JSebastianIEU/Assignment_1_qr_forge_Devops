@@ -68,7 +68,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Build Docker image
-        run: docker build -t qr_forge:ci .
+        run: docker build -f infrastructure/docker/Dockerfile -t qr_forge:ci .
 
       - name: Trivy scan (image)
         uses: aquasecurity/trivy-action@0.21.0

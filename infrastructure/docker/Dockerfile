@@ -6,14 +6,10 @@
 FROM node:20-alpine AS frontend-build
 WORKDIR /build/frontend
 
-# Copy package manifests from the repo (frontend lives in src/frontend)
-COPY src/frontend/package.json src/frontend/package-lock.json* ./
+# Copy the entire frontend (node_modules is excluded by .dockerignore)
+COPY ./src/frontend/ ./
 
 RUN npm ci
-
-# Copy the rest of the frontend sources
-COPY src/frontend/ .
-
 RUN npm run build
 
 ############################################################
