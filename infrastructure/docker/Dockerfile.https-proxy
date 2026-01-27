@@ -6,7 +6,7 @@ WORKDIR /app
 RUN pip install fastapi uvicorn httpx
 
 # Copy proxy server
-COPY proxy_server.py .
+COPY ./infrastructure/docker/proxy_server.py .
 
 EXPOSE 8000
 
