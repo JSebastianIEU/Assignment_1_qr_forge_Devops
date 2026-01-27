@@ -6,11 +6,11 @@
 FROM node:20-alpine AS frontend-build
 WORKDIR /build
 
-# Copy entire frontend (lockfile included unless excluded by .dockerignore)
-COPY ./src/frontend ./frontend
-WORKDIR /build/frontend
+# Copy the repository context (obeying .dockerignore)
+COPY . .
 
-# Prefer reproducible install when lockfile is present; fall back to npm install
+# Build frontend from its directory
+WORKDIR /build/src/frontend
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 RUN npm run build
 
