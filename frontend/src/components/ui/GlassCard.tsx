@@ -18,7 +18,7 @@ export const GlassCard = ({ title, description, actions, className, children, va
       : 'shadow-[0_8px_18px_rgba(15,23,42,0.10)]'
 
   return (
-    <div className={twMerge('glass-card rounded-2xl text-slate-900', variantClasses, className)}>
+    <div className={twMerge('glass-card rounded-2xl text-slate-900 p-5 md:p-6', variantClasses, className)}>
       {(title || description || actions) && (
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
