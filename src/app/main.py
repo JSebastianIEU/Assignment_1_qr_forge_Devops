@@ -5,6 +5,7 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -69,6 +70,37 @@ TAGS_METADATA = [
     },
 ]
 
+@asynccontextmanager
+async def app_lifespan(app: FastAPI):
+    """Application lifespan context: configure logging, ensure dirs and DB.
+
+    Replaces the older `on_event('startup')` approach and provides a single
+    async context for startup and shutdown operations.
+    """
+    # Configure structured logging once at startup
+    configure_logging()
+    logger = get_logger("qr_forge.app")
+    logger.info("Application startup: initializing DB and directories")
+
+    # Ensure asset directories exist (moved out of import-time side-effects)
+    created = ensure_dirs(settings)
+    for p in created:
+        logger.info("Ensured directory exists: %s", str(p))
+
+    try:
+        init_db()
+    except Exception:
+        logger.exception("init_db() raised an exception during startup")
+
+    # Telemetry and metrics
+    _setup_application_insights(app, logger)
+    _setup_prometheus_instrumentator(app, logger)
+
+    try:
+        yield
+    finally:
+        logger.info("Application shutdown completed")
+
 app = FastAPI(
     title="QR Forge",
     description=(
@@ -84,6 +116,24 @@ app = FastAPI(
     openapi_tags=TAGS_METADATA,
     docs_url="/docs",
     redoc_url=None,
+    lifespan=app_lifespan,
+)
+
+# CORS middleware for local development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:5173",
+        "https://jsebastianqrapp.azurewebsites.net",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Prometheus metrics definitions
@@ -108,11 +158,11 @@ async def metrics_middleware(request: Request, call_next):
     import time
 
     start = time.time()
+    status = "500"  # default to 500 in case of exception
     try:
         response = await call_next(request)
         status = str(response.status_code)
     except Exception:  # capture exceptions as 500
-        status = "500"
         REQUEST_COUNT.labels(method=method, endpoint=path, http_status=status).inc()
         raise
     finally:
@@ -185,41 +235,6 @@ def _setup_prometheus_instrumentator(app: FastAPI, logger: "logging.Logger") -> 
         )
 
 
-@asynccontextmanager
-async def app_lifespan(app: FastAPI):
-    """Application lifespan context: configure logging, ensure dirs and DB.
-
-    Replaces the older `on_event('startup')` approach and provides a single
-    async context for startup and shutdown operations.
-    """
-    # Configure structured logging once at startup
-    configure_logging()
-    logger = get_logger("qr_forge.app")
-    logger.info("Application startup: initializing DB and directories")
-
-    # Ensure asset directories exist (moved out of import-time side-effects)
-    created = ensure_dirs(settings)
-    for p in created:
-        logger.info("Ensured directory exists: %s", str(p))
-
-    try:
-        init_db()
-    except Exception:
-        logger.exception("init_db() raised an exception during startup")
-
-    # Telemetry and metrics
-    _setup_application_insights(app, logger)
-    _setup_prometheus_instrumentator(app, logger)
-
-    try:
-        yield
-    finally:
-        logger.info("Application shutdown completed")
-
-
-app.router.lifespan_context = app_lifespan
-
-
 app.include_router(auth.router)
 app.include_router(user.router)
 app.include_router(qr.router)
@@ -228,20 +243,12 @@ app.include_router(export.router)
 app.mount("/assets", StaticFiles(directory=str(BASE_DIR / "assets")), name="assets")
 
 # Mount QR assets directory for serving generated SVG/PNG files
-qr_assets_svg = settings.assets_dir
-qr_assets_png = settings.temp_dir
 try:
-    if qr_assets_svg.exists():
+    if settings.assets_dir.exists():
         app.mount(
-            "/qr-assets/svg",
-            StaticFiles(directory=str(qr_assets_svg)),
-            name="qr-svg",
-        )
-    if qr_assets_png.exists():
-        app.mount(
-            "/qr-assets/png",
-            StaticFiles(directory=str(qr_assets_png)),
-            name="qr-png",
+            "/qr-assets",
+            StaticFiles(directory=str(settings.assets_dir)),
+            name="qr-assets",
         )
 except Exception:
     # Log but don't fail if directories don't exist yet
@@ -294,9 +301,14 @@ def health() -> dict:
 @app.get("/{full_path:path}", include_in_schema=False)
 async def spa_catch_all(full_path: str):
     """Serve the SPA for all non-API routes, or 404 for excluded paths."""
-    if full_path.startswith(("api", "metrics", "health", "docs", "openapi")):
+    if full_path.startswith(("api", "metrics", "health", "docs", "openapi", "qr-assets", "assets", "favicon")):
         return PlainTextResponse(
             content="Not Found",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+    if not SPA_INDEX.exists():
+        return PlainTextResponse(
+            content="SPA not built",
             status_code=status.HTTP_404_NOT_FOUND,
         )
     return FileResponse(SPA_INDEX)

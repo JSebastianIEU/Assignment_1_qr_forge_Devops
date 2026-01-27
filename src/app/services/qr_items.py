@@ -157,7 +157,7 @@ def path_to_url(path_or_url: str) -> str:
     """Convert filesystem path to URL, or return blob URL as-is.
 
     For Azure Blob Storage: returns the URL directly (already public).
-    For local filesystem: converts to /qr-assets/svg/filename format.
+    For local filesystem: converts to /qr-assets/filename format.
     """
     if not path_or_url:
         return path_or_url
@@ -170,16 +170,17 @@ def path_to_url(path_or_url: str) -> str:
     path = Path(path_or_url)
     filename = path.name
 
-    # Check if it's in the SVG assets directory
+    # Check if it's in the assets directory (both SVG and PNG)
     try:
         path.relative_to(settings.assets_dir)
-        return f"/qr-assets/svg/{filename}"
+        return f"/qr-assets/{filename}"
     except ValueError:
         pass
 
+    # Check temp directory as fallback
     try:
         path.relative_to(settings.temp_dir)
-        return f"/qr-assets/png/{filename}"
+        return f"/qr-assets/{filename}"
     except ValueError:
         pass
 

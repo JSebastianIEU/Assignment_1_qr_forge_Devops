@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { createQR, deleteQR, exportHistoryCsv, fetchQRHistory, previewQR } from '../api/qr.api'
+import { createQR, deleteQR, downloadQR, exportHistoryCsv, fetchQRHistory, previewQR } from '../api/qr.api'
 import type { QRCreateRequest, QRItem } from '../types/api.types'
 import type { QRFormat } from '../types/qr.types'
 import { useQRStore } from '../store/qrStore'
@@ -60,14 +60,21 @@ export const useQR = () => {
     onError: () => toast.error('No pudimos exportar el historial'),
   })
 
-  const download = (id: number, format: QRFormat = 'svg') => {
-    const url = `/api/qr/${id}/download?format=${format}`
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = `qr-code-${id}.${format}`
-    document.body.appendChild(anchor)
-    anchor.click()
-    document.body.removeChild(anchor)
+  const download = async (id: number, format: QRFormat = 'svg') => {
+    try {
+      const blob = await downloadQR(id, format)
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `qr-code-${id}.${format}`
+      document.body.appendChild(anchor)
+      anchor.click()
+      document.body.removeChild(anchor)
+      URL.revokeObjectURL(url)
+      toast.success('QR descargado')
+    } catch (error) {
+      toast.error('Error al descargar el QR')
+    }
   }
 
   return {
