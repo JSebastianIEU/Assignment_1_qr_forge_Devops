@@ -46,7 +46,7 @@ jobs:
 
       - name: Build Docker image for scanning
         run: |
-          docker build -t scan-image:${{ github.sha }} .
+          docker build -f infrastructure/docker/Dockerfile -t scan-image:${{ github.sha }} .
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master

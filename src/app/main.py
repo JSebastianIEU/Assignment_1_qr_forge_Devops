@@ -5,7 +5,7 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, status
-from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
@@ -232,10 +232,18 @@ qr_assets_svg = settings.assets_dir
 qr_assets_png = settings.temp_dir
 try:
     if qr_assets_svg.exists():
-        app.mount("/qr-assets/svg", StaticFiles(directory=str(qr_assets_svg)), name="qr-svg")
+        app.mount(
+            "/qr-assets/svg",
+            StaticFiles(directory=str(qr_assets_svg)),
+            name="qr-svg",
+        )
     if qr_assets_png.exists():
-        app.mount("/qr-assets/png", StaticFiles(directory=str(qr_assets_png)), name="qr-png")
-except Exception as e:
+        app.mount(
+            "/qr-assets/png",
+            StaticFiles(directory=str(qr_assets_png)),
+            name="qr-png",
+        )
+except Exception:
     # Log but don't fail if directories don't exist yet
     pass
 
