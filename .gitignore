@@ -276,11 +276,14 @@ src/frontend/dist/
 src/frontend/.next/
 src/frontend/out/
 
-# Azure-specific
-*.json
+# Azure-specific (limit to potential secret dumps; keep manifest files)
+secrets/*.json
+local_settings.json
+temp_*.json
 !pyproject.toml
 !requirements.toml
-temp_*.json
+!src/frontend/package.json
+!src/frontend/package-lock.json
 
 # Assignment/Documentation working files
 Assignment1/
