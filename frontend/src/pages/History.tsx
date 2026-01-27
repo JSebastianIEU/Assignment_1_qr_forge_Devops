@@ -1,11 +1,16 @@
 import { HistoryView } from '../features/qr/HistoryView'
+import { PageHeader } from '../components/ui/PageHeader'
+import { MainPanel } from '../components/layout/MainPanel'
 
 export const History = () => (
-  <div className="w-full space-y-4">
-    <div>
-      <h1 className="text-3xl font-bold text-slate-900">Historial</h1>
-      <p className="text-slate-600">Consulta y exporta los QR generados previamente.</p>
-    </div>
+  <MainPanel>
+    <div className="space-y-6">
+    <PageHeader
+      kicker="History"
+      title="Saved QR codes"
+      subtitle="Download, export, or delete the codes you already generated."
+    />
     <HistoryView />
-  </div>
+    </div>
+  </MainPanel>
 )

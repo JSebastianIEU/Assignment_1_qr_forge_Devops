@@ -15,10 +15,15 @@ interface QRFormProps {
 }
 
 export const QRForm = ({ onPreview, onSubmit, isSubmitting, isPreviewing }: QRFormProps) => {
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<QRFormValues>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+  } = useForm<QRFormValues>({
     resolver: zodResolver(qrSchema),
     defaultValues: {
-      title: 'Nueva campana',
+      title: 'New campaign',
       url: 'https://example.com',
       foreground_color: '#1d4ed8',
       background_color: '#ffffff',
@@ -32,24 +37,24 @@ export const QRForm = ({ onPreview, onSubmit, isSubmitting, isPreviewing }: QRFo
   return (
     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Titulo" error={errors.title?.message} {...register('title')} placeholder="Campana Black Friday" />
+        <Input label="Title" error={errors.title?.message} {...register('title')} placeholder="Campaign Black Friday" />
         <Input
-          label="URL / destino"
+          label="URL / destination"
           error={errors.url?.message}
           {...register('url')}
-          placeholder="https://tu-sitio.com"
+          placeholder="https://your-site.com"
         />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Input
-          label="Color principal"
+          label="Primary color"
           type="color"
           error={errors.foreground_color?.message}
           {...register('foreground_color')}
         />
         <Input
-          label="Color de fondo"
+          label="Background color"
           type="color"
           error={errors.background_color?.message}
           {...register('background_color')}
@@ -58,7 +63,7 @@ export const QRForm = ({ onPreview, onSubmit, isSubmitting, isPreviewing }: QRFo
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Input
-          label="Tamano (px)"
+          label="Size (px)"
           type="number"
           inputMode="numeric"
           error={errors.size?.message}
@@ -81,21 +86,21 @@ export const QRForm = ({ onPreview, onSubmit, isSubmitting, isPreviewing }: QRFo
       </div>
 
       <Input
-        label="Overlay (opcional)"
+        label="Overlay (optional)"
         error={errors.overlay_text?.message}
         {...register('overlay_text')}
         placeholder="TXT"
-        helperText="Maximo 4 caracteres"
+        helperText="Max 4 characters"
       />
 
       <div className="space-y-2">
-        <p className="text-sm font-medium text-slate-700">Paleta rapida</p>
+        <p className="text-sm font-medium text-slate-700">Quick palette</p>
         <div className="flex flex-wrap gap-2">
           {COLOR_PALETTE.map((color) => (
             <button
               key={color}
               type="button"
-              aria-label={`Usar color ${color}`}
+              aria-label={`Use color ${color}`}
               className="h-8 w-8 rounded-full border border-slate-200"
               style={{ backgroundColor: color }}
               onClick={() => setValue('foreground_color', color)}
@@ -106,7 +111,7 @@ export const QRForm = ({ onPreview, onSubmit, isSubmitting, isPreviewing }: QRFo
 
       <div className="flex flex-wrap gap-3">
         <Button type="submit" loading={isSubmitting}>
-          Guardar QR
+          Save QR
         </Button>
         <Button
           type="button"
@@ -114,7 +119,7 @@ export const QRForm = ({ onPreview, onSubmit, isSubmitting, isPreviewing }: QRFo
           loading={isPreviewing}
           onClick={handleSubmit((values) => onPreview(values))}
         >
-          Ver preview
+          View preview
         </Button>
       </div>
     </form>

@@ -2,7 +2,7 @@ import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom'
 
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
-import { Shell } from './components/layout/Shell'
+import { AppShell } from './components/layout/AppShell'
 import { Generator } from './pages/Generator'
 import { History } from './pages/History'
 import { Home } from './pages/Home'
@@ -13,11 +13,11 @@ import { Signup } from './pages/Signup'
 import { ROUTES } from './utils/constants'
 
 const AppLayout = () => (
-  <Shell>
+  <AppShell>
     <ErrorBoundary>
       <Outlet />
     </ErrorBoundary>
-  </Shell>
+  </AppShell>
 )
 
 const router = createBrowserRouter([

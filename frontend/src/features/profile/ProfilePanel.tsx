@@ -37,18 +37,18 @@ export const ProfilePanel = () => {
     onSuccess: (updated) => {
       setUser(updated)
       reset({ full_name: updated.full_name ?? '', password: '' })
-      toast.success('Perfil actualizado')
+      toast.success('Profile updated')
     },
-    onError: () => toast.error('No pudimos actualizar el perfil'),
+    onError: () => toast.error('Unable to update profile'),
   })
 
   const deleteMutation = useMutation({
     mutationFn: deleteProfile,
     onSuccess: () => {
-      toast.info('Cuenta eliminada')
+      toast.info('Account deleted')
       logoutMutation.mutate()
     },
-    onError: () => toast.error('No pudimos eliminar la cuenta'),
+    onError: () => toast.error('Unable to delete your account'),
   })
 
   const onSubmit = (values: ProfileFormValues) => {
@@ -57,26 +57,26 @@ export const ProfilePanel = () => {
 
   return (
     <div className="space-y-6">
-      <Card title="Perfil" description="Actualiza tu nombre o contraseña.">
+      <Card title="Profile" description="Update your name or password.">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Input label="Nombre completo" error={errors.full_name?.message} {...register('full_name')} />
+          <Input label="Full name" error={errors.full_name?.message} {...register('full_name')} />
           <Input
-            label="Nueva contraseña"
+            label="New password"
             type="password"
             error={errors.password?.message}
             {...register('password')}
             placeholder="••••••••"
-            helperText="Déjalo en blanco para mantener la actual"
+            helperText="Leave blank to keep the current password"
           />
           <Button type="submit" loading={updateMutation.isPending}>
-            Guardar cambios
+            Save changes
           </Button>
         </form>
       </Card>
 
       <Card
-        title="Zona de riesgo"
-        description="Eliminar tu cuenta borrará todos los QR generados."
+        title="Danger zone"
+        description="Deleting your account removes all generated QR codes."
         actions={
           <Button
             variant="secondary"
@@ -84,12 +84,12 @@ export const ProfilePanel = () => {
             onClick={() => deleteMutation.mutate()}
             loading={deleteMutation.isPending}
           >
-            Eliminar cuenta
+            Delete account
           </Button>
         }
       >
         <Alert tone="warning">
-          Esta acción es irreversible. Asegúrate de haber exportado tus QR antes de continuar.
+          This action is irreversible. Export your QR codes before you continue.
         </Alert>
       </Card>
     </div>

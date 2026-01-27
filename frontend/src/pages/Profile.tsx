@@ -1,11 +1,16 @@
 import { ProfilePanel } from '../features/profile/ProfilePanel'
+import { PageHeader } from '../components/ui/PageHeader'
+import { MainPanel } from '../components/layout/MainPanel'
 
 export const Profile = () => (
-  <div className="w-full space-y-4">
-    <div>
-      <h1 className="text-3xl font-bold text-slate-900">Perfil</h1>
-      <p className="text-slate-600">Administra tus datos y seguridad de cuenta.</p>
-    </div>
+  <MainPanel>
+    <div className="space-y-6">
+    <PageHeader
+      kicker="Profile"
+      title="Your account and security"
+      subtitle="Update your name or password and keep your account safe."
+    />
     <ProfilePanel />
-  </div>
+    </div>
+  </MainPanel>
 )

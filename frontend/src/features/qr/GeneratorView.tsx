@@ -9,8 +9,8 @@ export const GeneratorView = () => {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card
-        title="Genera tu QR"
-        description="Configura el destino, colores y tamaño. Usa preview para validar antes de guardar."
+        title="Generate your QR"
+        description="Set the destination, colors, and size. Use preview to verify before saving."
       >
         <QRForm
           onPreview={(values) => previewMutation.mutate(values)}
@@ -20,7 +20,7 @@ export const GeneratorView = () => {
         />
       </Card>
 
-      <Card title="Preview en vivo" description="Así se verá tu código en alta definición">
+      <Card title="Live preview" description="See your code in high fidelity before committing.">
         <QRPreview svgData={preview?.svg_data} pngData={preview?.png_data} />
       </Card>
     </div>

@@ -1,20 +1,18 @@
+import { Github } from 'lucide-react'
+
 export const Footer = () => (
-  <footer className="mt-auto border-t border-slate-200 bg-white">
-    <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-      <p>© {new Date().getFullYear()} QR Forge. All rights reserved.</p>
-      <div className="flex items-center gap-3">
-        <a
-          href="https://github.com/"
-          target="_blank"
-          rel="noreferrer"
-          className="hover:text-primary-600"
-        >
-          Repo
-        </a>
-        <a href="/docs" className="hover:text-primary-600">
-          API Docs
-        </a>
-      </div>
+  <footer className="relative z-10 shrink-0 h-12 border-t border-white/20 bg-white/55 backdrop-blur-2xl shadow-[0_-12px_24px_rgba(15,23,42,0.08)]">
+    <div className="mx-auto flex h-full w-full max-w-[1200px] items-center justify-between gap-2 px-6 text-xs text-slate-700">
+      <p className="text-slate-800 text-xs">© 2025 QR Forge • Built by Juan Sebastian Peña</p>
+      <a
+        href="https://github.com/JSebastianIEU/Assignment_1_qr_forge_Devops.git"
+        target="_blank"
+        rel="noreferrer"
+        className="flex h-7 w-7 items-center justify-center rounded-full border border-white/30 bg-white/60 text-slate-900 transition hover:bg-white/80"
+        aria-label="QR Forge GitHub"
+      >
+        <Github className="h-3.5 w-3.5" />
+      </a>
     </div>
   </footer>
 )

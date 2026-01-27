@@ -7,7 +7,7 @@ export const QRPreview = ({ svgData, pngData }: QRPreviewProps) => {
   if (!svgData && !pngData) {
     return (
       <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white text-slate-500">
-        La previsualización aparecerá aquí
+        Preview will appear here
       </div>
     )
   }

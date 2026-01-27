@@ -32,16 +32,16 @@ export const LoginForm = () => {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <Input label="Email" type="email" error={errors.email?.message} {...register('email')} />
-      <Input label="Contraseña" type="password" error={errors.password?.message} {...register('password')} />
+      <Input label="Password" type="password" error={errors.password?.message} {...register('password')} />
 
       <Button type="submit" className="w-full" loading={loginMutation.isPending}>
-        Ingresar
+        Sign in
       </Button>
 
       <p className="text-center text-sm text-slate-600">
-        ¿Sin cuenta?{' '}
-        <Link to={ROUTES.signup} className="text-primary-600 hover:text-primary-700">
-          Regístrate
+        Need an account?{' '}
+        <Link to={ROUTES.signup} className="text-[var(--brand-primary)] hover:text-[var(--brand-primary-hover)]">
+          Sign up
         </Link>
       </p>
     </form>

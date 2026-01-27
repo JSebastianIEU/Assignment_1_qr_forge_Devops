@@ -1,0 +1,48 @@
+﻿import { Menu } from 'lucide-react'
+import { useState } from 'react'
+
+import { BackgroundLayer } from './BackgroundLayer'
+import { Sidebar } from '../nav/Sidebar'
+import { GlassCard } from '../ui/GlassCard'
+import { Footer } from './Footer'
+
+interface AppShellProps {
+  children: React.ReactNode
+}
+
+export const AppShell = ({ children }: AppShellProps) => {
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-50">
+      <BackgroundLayer />
+        <div className="relative z-10">
+          <div className="mx-auto max-w-[1100px] px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+            <div className="mb-4 flex items-center gap-3 lg:hidden">
+              <button
+                onClick={() => setMobileNavOpen((v) => !v)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white shadow-glass-sm backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
+              aria-label="Abrir navegaciÃ³n"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-300">QR Forge</p>
+              <p className="text-lg font-semibold text-white">Panel</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[200px,1fr] lg:gap-8 mx-auto">
+            <Sidebar openMobile={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
+            <GlassCard className="min-h-[70vh] p-6 sm:p-8 lg:max-h-[calc(100vh-140px)] lg:overflow-hidden">
+              <div className="relative h-full">
+                <div className="space-y-6 scroll-area lg:h-full lg:overflow-y-auto lg:pr-2">{children}</div>
+              </div>
+            </GlassCard>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    </div>
+  )
+}

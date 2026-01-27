@@ -6,7 +6,7 @@ export const HistoryView = () => {
   const { historyQuery, deleteMutation, download, exportCsv } = useQR()
 
   return (
-    <Card title="Historial" description="Descarga, exporta o elimina códigos previos.">
+    <Card title="History" description="Download, export, or delete previous QR codes.">
       <QRHistoryTable
         items={historyQuery.data}
         isLoading={historyQuery.isLoading}

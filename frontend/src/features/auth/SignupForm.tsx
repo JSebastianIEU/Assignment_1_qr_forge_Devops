@@ -29,18 +29,18 @@ export const SignupForm = () => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <Input label="Nombre completo" error={errors.full_name?.message} {...register('full_name')} />
+      <Input label="Full name" error={errors.full_name?.message} {...register('full_name')} />
       <Input label="Email" type="email" error={errors.email?.message} {...register('email')} />
-      <Input label="Contraseña" type="password" error={errors.password?.message} {...register('password')} />
+      <Input label="Password" type="password" error={errors.password?.message} {...register('password')} />
 
       <Button type="submit" className="w-full" loading={signupMutation.isPending}>
-        Crear cuenta
+        Create account
       </Button>
 
       <p className="text-center text-sm text-slate-600">
-        ¿Ya tienes cuenta?{' '}
-        <Link to={ROUTES.login} className="text-primary-600 hover:text-primary-700">
-          Inicia sesión
+        Already have an account?{' '}
+        <Link to={ROUTES.login} className="text-[var(--brand-primary)] hover:text-[var(--brand-primary-hover)]">
+          Sign in
         </Link>
       </p>
     </form>

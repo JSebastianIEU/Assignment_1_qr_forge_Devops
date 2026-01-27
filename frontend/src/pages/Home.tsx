@@ -1,70 +1,72 @@
-import { ArrowRight, ShieldCheck, Zap } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { Button } from '../components/common/Button'
 import { Card } from '../components/common/Card'
+import { PageHeader } from '../components/ui/PageHeader'
 import { ROUTES } from '../utils/constants'
+import { MainPanel } from '../components/layout/MainPanel'
 
-const valueProps = [
-  { title: 'Seguridad primero', icon: ShieldCheck, text: 'Autenticación JWT y cookies httpOnly, lista para producción.' },
-  { title: 'Rápido y fiable', icon: Zap, text: 'Vite + React Query para vistas optimistas y datos siempre frescos.' },
+const capsuleLabels = ['Free forever', 'Unlimited exports', 'SVG & PNG']
+const flowSteps = [
+  'Sign in securely.',
+  'Set destination, colors, and size.',
+  'Preview, save, download, or export.',
 ]
 
 export const Home = () => (
-  <div className="w-full">
-    <section className="grid gap-8 rounded-3xl bg-gradient-to-br from-primary-50 via-white to-accent-50 px-6 py-10 shadow-inner lg:grid-cols-2 lg:items-center">
-      <div className="space-y-6">
-        <p className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold uppercase text-primary-700 shadow-sm">
-          SPA React + FastAPI
-        </p>
-        <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-          Genera y gestiona códigos QR con calidad enterprise.
-        </h1>
-        <p className="text-lg text-slate-700">
-          Panel unificado para crear, previsualizar y descargar códigos QR. Listo para tu pipeline de CI/CD en Azure
-          Container Instances.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <Link to={ROUTES.signup}>
-            <Button>
-              Comenzar gratis
+  <MainPanel>
+    <div className="space-y-6">
+    <PageHeader
+      kicker="Dashboard"
+      title="Generate and manage production-ready QR codes"
+      subtitle="Create, preview, save, and export QR codes built for production—free forever."
+    />
+
+    <div className="grid gap-5 lg:grid-cols-[1.15fr,0.85fr]">
+      <Card
+        variant="elevated"
+        className="flex flex-col gap-4 border border-white/60 bg-white/75 p-6 text-slate-900 shadow-[0_12px_28px_rgba(15,23,42,0.14)]"
+        title="Custom QR codes, ready for production"
+        description="Design and deliver QR codes that meet enterprise standards. Preview instantly, download SVG/PNG, and keep a full history with CSV export."
+      >
+        <div className="flex flex-wrap gap-2">
+          <Link to={ROUTES.generator}>
+            <Button variant="primary">
+              Try the generator
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
-          <Link to={ROUTES.generator} className="btn-secondary">
-            Ver generador
+          <Link to={ROUTES.signup}>
+            <Button variant="ghost">Create account</Button>
           </Link>
         </div>
-        <div className="flex flex-wrap gap-3 text-sm text-slate-600">
-          <span>JWT con refresh</span>
-          <span className="h-1 w-1 rounded-full bg-slate-400" />
-          <span>Historial exportable</span>
-          <span className="h-1 w-1 rounded-full bg-slate-400" />
-          <span>Diseño responsive</span>
+      </Card>
+
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap gap-2">
+          {capsuleLabels.map((label) => (
+            <span key={label} className="badge-pill">
+              {label}
+            </span>
+          ))}
+        </div>
+        <div className="relative mx-auto w-full max-w-[420px] pl-8 text-slate-800 sm:mx-0">
+          <div className="absolute left-4 top-3 h-[calc(100%-1rem)] w-px bg-slate-200" aria-hidden />
+          <h3 className="text-base font-semibold text-slate-900">Flow in 3 steps</h3>
+          <ol className="space-y-4 text-sm text-slate-800">
+            {flowSteps.map((text, idx) => (
+              <li key={text} className="relative flex items-start gap-3">
+                <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-bold text-slate-900 shadow-sm">
+                  {idx + 1}
+                </span>
+                <span className="text-slate-800">{text}</span>
+              </li>
+            ))}
+          </ol>
         </div>
       </div>
-      <Card className="lg:ml-auto lg:max-w-md">
-        <h3 className="text-lg font-semibold text-slate-900">Flujo en 3 pasos</h3>
-        <ol className="mt-4 space-y-4 text-sm text-slate-700">
-          <li>
-            <span className="font-semibold text-primary-700">1.</span> Inicia sesión con tu cuenta segura.
-          </li>
-          <li>
-            <span className="font-semibold text-primary-700">2.</span> Configura colores, tamaño y destino de tu QR.
-          </li>
-          <li>
-            <span className="font-semibold text-primary-700">3.</span> Previsualiza, guarda y exporta cuando quieras.
-          </li>
-        </ol>
-      </Card>
-    </section>
-
-    <section className="mt-10 grid gap-4 sm:grid-cols-2">
-      {valueProps.map(({ title, icon: Icon, text }) => (
-        <Card key={title} title={title} description={text}>
-          <Icon className="h-10 w-10 text-primary-600" aria-hidden />
-        </Card>
-      ))}
-    </section>
-  </div>
+    </div>
+    </div>
+  </MainPanel>
 )
