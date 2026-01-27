@@ -70,6 +70,7 @@ TAGS_METADATA = [
     },
 ]
 
+
 @asynccontextmanager
 async def app_lifespan(app: FastAPI):
     """Application lifespan context: configure logging, ensure dirs and DB.
@@ -100,6 +101,7 @@ async def app_lifespan(app: FastAPI):
         yield
     finally:
         logger.info("Application shutdown completed")
+
 
 app = FastAPI(
     title="QR Forge",
@@ -301,7 +303,17 @@ def health() -> dict:
 @app.get("/{full_path:path}", include_in_schema=False)
 async def spa_catch_all(full_path: str):
     """Serve the SPA for all non-API routes, or 404 for excluded paths."""
-    if full_path.startswith(("api", "metrics", "health", "docs", "openapi", "qr-assets", "assets", "favicon")):
+    excluded_paths = (
+        "api",
+        "metrics",
+        "health",
+        "docs",
+        "openapi",
+        "qr-assets",
+        "assets",
+        "favicon",
+    )
+    if full_path.startswith(excluded_paths):
         return PlainTextResponse(
             content="Not Found",
             status_code=status.HTTP_404_NOT_FOUND,

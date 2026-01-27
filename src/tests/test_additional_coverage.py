@@ -13,7 +13,6 @@ from app.services.auth import signup_user, login_user, _normalize_email
 from app.services.user import update_profile, delete_user_and_assets
 from app.services.qr_items import create_qr_item
 
-
 # ============================================================================
 # Bootstrap Coverage - reach 100%
 # ============================================================================

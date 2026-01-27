@@ -9,7 +9,6 @@ from app.core.logging import configure_logging, get_logger
 from app.core.security import get_password_hash, verify_password
 from app.services.qr_items import path_to_url
 
-
 # ============================================================================
 # Logging Tests
 # ============================================================================

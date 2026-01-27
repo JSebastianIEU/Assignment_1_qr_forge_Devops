@@ -24,26 +24,26 @@ export const useQR = () => {
     onSuccess: (data) => {
       setPreview(data)
     },
-    onError: () => toast.error('No pudimos generar el preview'),
+    onError: () => toast.error('Failed to generate preview'),
   })
 
   const createMutation = useMutation({
     mutationFn: (payload: QRCreateRequest) => createQR(payload),
     onSuccess: (item) => {
       clearPreview()
-      toast.success('QR guardado')
+      toast.success('QR saved')
       queryClient.setQueryData<QRItem[]>(HISTORY_KEY, (prev) => (prev ? [item, ...prev] : [item]))
     },
-    onError: () => toast.error('No pudimos guardar el QR'),
+    onError: () => toast.error('Failed to save QR'),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteQR(id),
     onSuccess: ({ id }) => {
-      toast.info('QR eliminado')
+      toast.info('QR deleted')
       queryClient.setQueryData<QRItem[]>(HISTORY_KEY, (prev) => prev?.filter((item) => item.id !== id) ?? [])
     },
-    onError: () => toast.error('No pudimos eliminar el QR'),
+    onError: () => toast.error('Failed to delete QR'),
   })
 
   const exportCsv = useMutation({
@@ -55,9 +55,9 @@ export const useQR = () => {
       anchor.download = 'qr_history.csv'
       anchor.click()
       URL.revokeObjectURL(url)
-      toast.success('Historial exportado')
+      toast.success('History exported')
     },
-    onError: () => toast.error('No pudimos exportar el historial'),
+    onError: () => toast.error('Failed to export history'),
   })
 
   const download = async (id: number, format: QRFormat = 'svg') => {
@@ -71,9 +71,9 @@ export const useQR = () => {
       anchor.click()
       document.body.removeChild(anchor)
       URL.revokeObjectURL(url)
-      toast.success('QR descargado')
+      toast.success('QR downloaded')
     } catch (error) {
-      toast.error('Error al descargar el QR')
+      toast.error('Failed to download QR')
     }
   }
 

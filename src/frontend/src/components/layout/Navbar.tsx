@@ -7,9 +7,9 @@ import { ROUTES } from '../../utils/constants'
 import { Button } from '../common/Button'
 
 const navLinks = [
-  { to: ROUTES.generator, label: 'Generar' },
-  { to: ROUTES.history, label: 'Historial' },
-  { to: ROUTES.profile, label: 'Perfil' },
+  { to: ROUTES.generator, label: 'Generator' },
+  { to: ROUTES.history, label: 'History' },
+  { to: ROUTES.profile, label: 'Profile' },
 ]
 
 export const Navbar = () => {

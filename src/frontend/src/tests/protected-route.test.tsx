@@ -10,9 +10,9 @@ const renderWithRouter = (initialEntries: string[]) =>
     <MemoryRouter initialEntries={initialEntries}>
       <Routes>
         <Route element={<ProtectedRoute />}>
-          <Route path="/private" element={<div>Contenido protegido</div>} />
+          <Route path="/private" element={<div>Protected content</div>} />
         </Route>
-        <Route path="/login" element={<div>Pantalla login</div>} />
+        <Route path="/login" element={<div>Login screen</div>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -23,14 +23,14 @@ describe('ProtectedRoute', () => {
     useAuthStore.getState().logout()
   })
 
-  it('redirecciona a /login cuando no hay sesión', async () => {
+  it('redirects to /login when no session', async () => {
     renderWithRouter(['/private'])
-    expect(await screen.findByText(/Pantalla login/i)).toBeInTheDocument()
+    expect(await screen.findByText(/Login screen/i)).toBeInTheDocument()
   })
 
-  it('permite acceder cuando hay sesión', async () => {
+  it('allows access when session exists', async () => {
     useAuthStore.setState({ isAuthenticated: true })
     renderWithRouter(['/private'])
-    expect(await screen.findByText(/Contenido protegido/i)).toBeInTheDocument()
+    expect(await screen.findByText(/Protected content/i)).toBeInTheDocument()
   })
 })

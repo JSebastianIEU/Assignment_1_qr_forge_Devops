@@ -41,17 +41,17 @@ export const useAuth = () => {
     onSuccess: ({ user: userData, token }) => {
       login(userData, token)
       queryClient.setQueryData<User>(AUTH_QUERY_KEY, userData)
-      toast.success('Sesión iniciada')
+      toast.success('Session started')
     },
-    onError: () => toast.error('No pudimos iniciar sesión'),
+    onError: () => toast.error('Failed to sign in'),
     onSettled: () => setLoading(false),
   })
 
   const signupMutation = useMutation({
     mutationFn: (payload: SignupRequest) => signupApi(payload),
     onMutate: () => setLoading(true),
-    onSuccess: () => toast.success('Cuenta creada, ahora inicia sesión'),
-    onError: () => toast.error('No pudimos crear la cuenta'),
+    onSuccess: () => toast.success('Account created, now sign in'),
+    onError: () => toast.error('Failed to create account'),
     onSettled: () => setLoading(false),
   })
 
@@ -60,9 +60,9 @@ export const useAuth = () => {
     onSuccess: () => {
       logout()
       queryClient.removeQueries({ queryKey: AUTH_QUERY_KEY })
-      toast.info('Sesión cerrada')
+      toast.info('Session ended')
     },
-    onError: () => toast.error('No pudimos cerrar sesión'),
+    onError: () => toast.error('Failed to sign out'),
   })
 
   const resolvedUser: User | null = user ?? profileQuery.data ?? null
