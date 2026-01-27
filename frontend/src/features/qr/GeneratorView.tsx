@@ -30,13 +30,13 @@ export const GeneratorView = () => {
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[420px_1fr] h-full">
-      {/* Customizer Panel */}
-      <div className="flex flex-col h-full">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-0">
+      {/* LEFT: Customizer (Scrollable) */}
+      <div className="min-h-0 overflow-y-auto scrollbar-hide pr-2">
         <Card
           title="Customizer"
           description="Configure your QR code settings"
-          className="flex flex-col h-full"
+          className="flex flex-col"
         >
           <QRForm
             onPreview={(values) => previewMutation.mutate(values)}
@@ -47,59 +47,79 @@ export const GeneratorView = () => {
         </Card>
       </div>
 
-      {/* Preview Canvas - Sticky */}
-      <div className="flex flex-col h-full gap-5 overflow-hidden">
-        <div className="sticky top-0 z-10">
+      {/* RIGHT: Live Canvas + Actions (Sticky) */}
+      <div className="flex flex-col gap-4 h-full">
+        <div className="sticky top-[120px] z-10 flex flex-col gap-4">
+          {/* Live Canvas Card */}
           <Card
             title="Live Canvas"
             description="Preview your QR code in real-time"
             className="flex flex-col"
           >
-            <div className="flex items-center justify-center min-h-[400px]">
+            <div className="flex items-center justify-center h-64">
               <QRPreview
                 svgData={preview?.svg_data}
                 pngData={preview?.png_data}
-                onDownloadSvg={handleDownloadSvg}
-                onDownloadPng={handleDownloadPng}
               />
             </div>
           </Card>
-        </div>
 
-        {/* Sticky Action Bar */}
-        <div className="sticky top-[calc(400px+144px)] bg-white/95 backdrop-blur-sm rounded-2xl border border-slate-200/60 p-5 shadow-sm space-y-3">
-          <div className="flex flex-col gap-2">
-            <Button
-              className="w-full"
-              loading={createMutation.isPending}
-              onClick={() => {
-                const form = document.querySelector('form') as HTMLFormElement
-                if (form) {
-                  form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-                }
-              }}
-            >
-              Save QR
-            </Button>
-            <Button
-              variant="secondary"
-              className="w-full"
-              loading={previewMutation.isPending}
-              onClick={(e) => {
-                e.preventDefault()
-                const form = document.querySelector('form') as HTMLFormElement
-                if (form) {
-                  const formData = new FormData(form)
-                  const values: any = {}
-                  for (const [key, value] of formData.entries()) {
-                    values[key] = value
+          {/* Action Bar */}
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-slate-200/60 p-3 shadow-sm space-y-2">
+            {/* Export Format Controls */}
+            <div className="flex gap-2">
+              {preview?.svg_data && (
+                <button
+                  onClick={handleDownloadSvg}
+                  className="flex-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors duration-150 border border-slate-200"
+                >
+                  ↓ SVG
+                </button>
+              )}
+              {preview?.png_data && (
+                <button
+                  onClick={handleDownloadPng}
+                  className="flex-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors duration-150 border border-slate-200"
+                >
+                  ↓ PNG
+                </button>
+              )}
+            </div>
+
+            {/* Primary Actions */}
+            <div className="flex flex-col gap-1.5">
+              <Button
+                className="w-full py-1.5 text-xs"
+                loading={createMutation.isPending}
+                onClick={() => {
+                  const form = document.querySelector('form') as HTMLFormElement
+                  if (form) {
+                    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
                   }
-                  previewMutation.mutate(values)
-                }
-              }}
-            >
-              View Preview
-            </Button>
+                }}
+              >
+                Save QR
+              </Button>
+              <Button
+                variant="secondary"
+                className="w-full py-1.5 text-xs"
+                loading={previewMutation.isPending}
+                onClick={(e) => {
+                  e.preventDefault()
+                  const form = document.querySelector('form') as HTMLFormElement
+                  if (form) {
+                    const formData = new FormData(form)
+                    const values: any = {}
+                    for (const [key, value] of formData.entries()) {
+                      values[key] = value
+                    }
+                    previewMutation.mutate(values)
+                  }
+                }}
+              >
+                View Preview
+              </Button>
+            </div>
           </div>
         </div>
       </div>

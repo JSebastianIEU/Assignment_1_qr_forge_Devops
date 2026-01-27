@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useRef } from 'react'
 import { useForm } from 'react-hook-form'
 
 import { COLOR_PALETTE } from '../../utils/constants'
@@ -120,13 +121,14 @@ const ColorField = ({
   </div>
 )
 
-export const QRForm = ({ onPreview: _, onSubmit: onSubmitProp, isSubmitting: ___, isPreviewing: ____ }: QRFormProps) => {
+export const QRForm = ({ onPreview, onSubmit: onSubmitProp, isSubmitting: ___, isPreviewing: ____ }: QRFormProps) => {
   const {
     register,
     handleSubmit,
     formState: { errors },
     setValue,
     watch,
+    getValues,
   } = useForm<QRFormValues>({
     resolver: zodResolver(qrSchema),
     defaultValues: {
@@ -144,6 +146,23 @@ export const QRForm = ({ onPreview: _, onSubmit: onSubmitProp, isSubmitting: ___
   const watchedValues = watch()
   const overlayLength = watchedValues.overlay_text?.length || 0
   const overlayMaxLength = 4
+
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  const debouncedPreview = () => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    debounceTimerRef.current = setTimeout(() => {
+      // Always get the latest values from the form
+      const currentValues = getValues()
+      onPreview(currentValues)
+    }, 300)
+  }
+
+  const handleFieldChange = (callback: () => void) => {
+    callback()
+    // Trigger preview immediately with current values
+    debouncedPreview()
+  }
 
   return (
     <form className="flex flex-col h-full" onSubmit={handleSubmit(onSubmitProp)}>
@@ -167,14 +186,14 @@ export const QRForm = ({ onPreview: _, onSubmit: onSubmitProp, isSubmitting: ___
           <ColorField
             label="Primary"
             value={watchedValues.foreground_color}
-            onChange={(val) => setValue('foreground_color', val)}
+            onChange={(val) => handleFieldChange(() => setValue('foreground_color', val))}
             error={errors.foreground_color?.message}
             palette={COLOR_PALETTE}
           />
           <ColorField
             label="Background"
             value={watchedValues.background_color}
-            onChange={(val) => setValue('background_color', val)}
+            onChange={(val) => handleFieldChange(() => setValue('background_color', val))}
             error={errors.background_color?.message}
           />
         </Section>
@@ -183,7 +202,7 @@ export const QRForm = ({ onPreview: _, onSubmit: onSubmitProp, isSubmitting: ___
           <SliderField
             label="Size (px)"
             value={watchedValues.size}
-            onChange={(val) => setValue('size', val)}
+            onChange={(val) => handleFieldChange(() => setValue('size', val))}
             min={128}
             max={512}
             step={8}
@@ -192,7 +211,7 @@ export const QRForm = ({ onPreview: _, onSubmit: onSubmitProp, isSubmitting: ___
           <SliderField
             label="Padding"
             value={watchedValues.padding}
-            onChange={(val) => setValue('padding', val)}
+            onChange={(val) => handleFieldChange(() => setValue('padding', val))}
             min={0}
             max={32}
             step={2}
@@ -201,7 +220,7 @@ export const QRForm = ({ onPreview: _, onSubmit: onSubmitProp, isSubmitting: ___
           <SliderField
             label="Border Radius"
             value={watchedValues.border_radius}
-            onChange={(val) => setValue('border_radius', val)}
+            onChange={(val) => handleFieldChange(() => setValue('border_radius', val))}
             min={0}
             max={24}
             step={2}

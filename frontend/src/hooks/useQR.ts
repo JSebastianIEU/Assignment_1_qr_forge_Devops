@@ -23,7 +23,6 @@ export const useQR = () => {
     mutationFn: (payload: QRCreateRequest) => previewQR(payload),
     onSuccess: (data) => {
       setPreview(data)
-      toast.success('Preview generado')
     },
     onError: () => toast.error('No pudimos generar el preview'),
   })

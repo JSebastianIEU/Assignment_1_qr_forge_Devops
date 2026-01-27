@@ -1,9 +1,11 @@
-import { Download, Trash2 } from 'lucide-react'
+import { Download, Link2, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 
 import type { QRItem } from '../../types/api.types'
-import { formatDate, truncate } from '../../utils/format'
+import { formatDate } from '../../utils/format'
 import { Button } from '../common/Button'
 import { Alert } from '../common/Alert'
+import { useToast } from '../../hooks/useToast'
 
 interface Props {
   items?: QRItem[]
@@ -11,6 +13,43 @@ interface Props {
   onDelete: (id: number) => void
   onDownload: (id: number) => void
   onExportCsv?: () => void
+}
+
+const URLLinkButton = ({ url }: { url: string }) => {
+  const [hoveredUrl, setHoveredUrl] = useState<string | null>(null)
+  const toast = useToast()
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success('Link copied to clipboard')
+    } catch {
+      toast.error('Failed to copy link')
+    }
+  }
+
+  return (
+    <div className="relative inline-block">
+      <button
+        onClick={handleCopy}
+        onMouseEnter={() => setHoveredUrl(url)}
+        onMouseLeave={() => setHoveredUrl(null)}
+        className="inline-flex items-center justify-center w-8 h-8 text-slate-600 hover:text-blue-600 transition-colors duration-150 rounded hover:bg-blue-50"
+        title="Copy URL"
+      >
+        <Link2 className="w-4 h-4" />
+      </button>
+
+      {hoveredUrl && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none">
+          <div className="bg-slate-900 text-white text-xs rounded px-3 py-2 max-w-xs break-words whitespace-normal">
+            {url}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 transform rotate-45" />
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export const QRHistoryTable = ({ items = [], isLoading, onDelete, onDownload, onExportCsv }: Props) => {
@@ -51,9 +90,7 @@ export const QRHistoryTable = ({ items = [], isLoading, onDelete, onDownload, on
               <tr key={item.id} className="border-t border-slate-100">
                 <td className="px-4 py-3 font-medium text-slate-900">{item.title || 'Untitled'}</td>
                 <td className="px-4 py-3">
-                  <a href={item.url} target="_blank" rel="noreferrer" className="text-[var(--brand-primary)]">
-                    {truncate(item.url, 42)}
-                  </a>
+                  <URLLinkButton url={item.url} />
                 </td>
                 <td className="px-4 py-3 text-slate-600">{formatDate(item.created_at)}</td>
                 <td className="px-4 py-3 text-right">
