@@ -131,6 +131,18 @@ class AzureBlobStorage(StorageBackend):
         except Exception as e:
             logger.warning(f"Failed to delete blob {path_or_url}: {e}")
 
+    def read_file(self, path_or_url: str) -> bytes:
+        """Download blob content by URL or name."""
+        # Extract blob name from URL if it's a full URL
+        blob_name = (
+            path_or_url.split("/")[-1] if "/" in path_or_url else path_or_url
+        )
+
+        blob_client = self._client.get_blob_client(
+            container=self.container_name, blob=blob_name
+        )
+        return blob_client.download_blob().readall()
+
     def get_file_path(self, path_or_url: str) -> Path | None:
         """Blob storage doesn't use filesystem paths for serving."""
         return None
