@@ -9,11 +9,11 @@ Environment variables:
 from __future__ import annotations
 
 import os
-from typing import Any, Dict
+from typing import Dict
 
 import httpx
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse
 
 TARGET_URL = os.getenv("TARGET_URL", "http://backend:8000")
 REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "15"))
@@ -26,10 +26,15 @@ async def health() -> Dict[str, str]:
     return {"status": "ok"}
 
 
-@app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+@app.api_route(
+    "/{full_path:path}",
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+)
 async def proxy(full_path: str, request: Request) -> Response:
     # Build target URL
-    url = httpx.URL(f"{TARGET_URL}/{full_path}").copy_with(query=request.url.query.encode("utf-8"))
+    url = httpx.URL(f"{TARGET_URL}/{full_path}").copy_with(
+        query=request.url.query.encode("utf-8")
+    )
 
     # Read body (if any)
     body = await request.body()
