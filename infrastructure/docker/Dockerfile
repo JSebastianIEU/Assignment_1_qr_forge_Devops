@@ -5,7 +5,8 @@
 ############################################################
 FROM node:20-alpine AS frontend-build
 WORKDIR /build/frontend
-COPY src/frontend/package*.json ./
+COPY src/frontend/package.json ./
+COPY src/frontend/package-lock.json* ./
 RUN npm install
 COPY src/frontend/ ./
 RUN npm run build
