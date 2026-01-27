@@ -134,9 +134,7 @@ class AzureBlobStorage(StorageBackend):
     def read_file(self, path_or_url: str) -> bytes:
         """Download blob content by URL or name."""
         # Extract blob name from URL if it's a full URL
-        blob_name = (
-            path_or_url.split("/")[-1] if "/" in path_or_url else path_or_url
-        )
+        blob_name = path_or_url.split("/")[-1] if "/" in path_or_url else path_or_url
 
         blob_client = self._client.get_blob_client(
             container=self.container_name, blob=blob_name

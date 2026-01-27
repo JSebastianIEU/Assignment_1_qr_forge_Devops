@@ -1,7 +1,7 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import FileResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, Response
 from sqlmodel import Session
 
 from app.core.security import get_current_user
@@ -112,13 +112,12 @@ def download_qr(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    from io import BytesIO
     from app.storage import get_storage_backend
-    
+
     # Try to get filesystem path (local storage)
     path = qr_items.download_path(session, current_user, item_id, format)
     media_type = "image/svg+xml" if format == "svg" else "image/png"
-    
+
     if path is None:
         # Blob storage: download from blob and stream
         item = qr_items.get_owned_item(session, current_user, item_id)
@@ -128,16 +127,16 @@ def download_qr(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"{format.upper()} not available",
             )
-        
+
         storage = get_storage_backend()
         content = storage.read_file(path_str)
-        
+
         return Response(
             content=content,
             media_type=media_type,
             headers={
                 "Content-Disposition": f'attachment; filename="qr-{item_id}.{format}"'
-            }
+            },
         )
 
     # Local storage: serve file directly
