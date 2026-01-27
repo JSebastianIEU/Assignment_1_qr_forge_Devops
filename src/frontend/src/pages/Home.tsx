@@ -16,14 +16,14 @@ const flowSteps = [
 
 export const Home = () => (
   <MainPanel>
-    <div className="space-y-6">
+    <div className="space-y-6 flex flex-col justify-center h-full">
     <PageHeader
       kicker="Dashboard"
       title="Generate and manage production-ready QR codes"
       subtitle="Create, preview, save, and export QR codes built for production—free forever."
     />
 
-    <div className="grid gap-5 lg:grid-cols-[1.15fr,0.85fr]">
+    <div className="grid gap-5 lg:grid-cols-[1.15fr,0.85fr] items-center">
       <Card
         variant="elevated"
         className="flex flex-col gap-4 border border-white/60 bg-white/75 p-6 text-slate-900 shadow-[0_12px_28px_rgba(15,23,42,0.14)]"
@@ -43,7 +43,7 @@ export const Home = () => (
         </div>
       </Card>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 justify-center">
         <div className="flex flex-wrap gap-2">
           {capsuleLabels.map((label) => (
             <span key={label} className="badge-pill">
