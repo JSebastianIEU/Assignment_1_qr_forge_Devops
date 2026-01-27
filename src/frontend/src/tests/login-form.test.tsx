@@ -15,11 +15,11 @@ const renderLoginForm = () =>
   )
 
 describe('LoginForm', () => {
-  it('muestra errores de validación con campos vacíos', async () => {
+  it('shows validation errors with empty fields', async () => {
     renderLoginForm()
-    fireEvent.submit(screen.getByRole('button', { name: /Ingresar/i }))
+    fireEvent.submit(screen.getByRole('button', { name: /Sign in/i }))
 
-    expect(await screen.findAllByText(/Ingresa un email válido/i)).toHaveLength(1)
-    expect(await screen.findAllByText(/Mínimo 8 caracteres/i)).toHaveLength(1)
+    expect(await screen.findAllByText(/Enter a valid email/i)).toHaveLength(1)
+    expect(await screen.findAllByText(/Minimum 8 characters/i)).toHaveLength(1)
   })
 })

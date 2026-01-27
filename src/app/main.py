@@ -263,18 +263,7 @@ def favicon() -> FileResponse:
     return FileResponse(BASE_DIR / "static" / "favicon.ico")
 
 
-@app.get("/{full_path:path}", include_in_schema=False)
-async def spa_catch_all(full_path: str):
-    """Serve the SPA for all non-API routes, or 404 for excluded paths."""
-    if full_path.startswith(("api", "metrics", "health", "docs", "openapi")):
-        return PlainTextResponse(
-            content="Not Found",
-            status_code=status.HTTP_404_NOT_FOUND,
-        )
-    return FileResponse(SPA_INDEX)
-
-
-@app.get("/health", summary="Simple health check")
+@app.get("/health", summary="Simple health check", include_in_schema=False)
 def health() -> dict:
     """Health check that reflects DB connectivity.
 
@@ -300,3 +289,14 @@ def health() -> dict:
             content="Health check failed",
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+async def spa_catch_all(full_path: str):
+    """Serve the SPA for all non-API routes, or 404 for excluded paths."""
+    if full_path.startswith(("api", "metrics", "health", "docs", "openapi")):
+        return PlainTextResponse(
+            content="Not Found",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+    return FileResponse(SPA_INDEX)
