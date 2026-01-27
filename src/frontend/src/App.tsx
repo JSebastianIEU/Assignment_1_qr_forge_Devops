@@ -3,6 +3,7 @@ import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { AppShell } from './components/layout/AppShell'
+import { MobileComingSoon } from './components/layout/MobileComingSoon'
 import { Generator } from './pages/Generator'
 import { History } from './pages/History'
 import { Home } from './pages/Home'
@@ -12,12 +13,23 @@ import { Profile } from './pages/Profile'
 import { Signup } from './pages/Signup'
 import { ROUTES } from './utils/constants'
 
+// Wrapper que maneja mobile/tablet vs desktop
 const AppLayout = () => (
-  <AppShell>
-    <ErrorBoundary>
-      <Outlet />
-    </ErrorBoundary>
-  </AppShell>
+  <>
+    {/* Mobile/Tablet Coming Soon (global) */}
+    <div className="lg:hidden">
+      <MobileComingSoon />
+    </div>
+
+    {/* Desktop App */}
+    <div className="hidden lg:block">
+      <AppShell>
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
+      </AppShell>
+    </div>
+  </>
 )
 
 const router = createBrowserRouter([

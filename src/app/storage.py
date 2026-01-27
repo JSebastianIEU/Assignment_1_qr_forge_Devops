@@ -63,6 +63,25 @@ class LocalFilesystemStorage(StorageBackend):
     def get_file_path(self, path_or_url: str) -> Path | None:
         return Path(path_or_url)
 
+    def read_file(self, path_or_url: str) -> bytes:
+        """Read bytes from a local path or an HTTP(S) URL.
+
+        This allows tests to successfully download even if a URL was saved
+        while using the local backend (e.g., public Azure blob URLs).
+        """
+        try:
+            if path_or_url.startswith(("http://", "https://")):
+                import httpx
+
+                resp = httpx.get(path_or_url)
+                resp.raise_for_status()
+                return resp.content
+            else:
+                return Path(path_or_url).read_bytes()
+        except Exception as e:
+            logger.error("Failed to read file %s: %s", path_or_url, e)
+            raise
+
 
 class AzureBlobStorage(StorageBackend):
     """Azure Blob Storage backend for production."""
@@ -159,13 +178,24 @@ def get_storage() -> StorageBackend:
         return LocalFilesystemStorage(base_dir=settings.assets_dir)
 
 
-# Global storage instance
-_storage: Optional[StorageBackend] = None
+# Global storage instance (use name expected by tests)
+_storage_backend: Optional[StorageBackend] = None
 
 
 def get_storage_backend() -> StorageBackend:
     """Get or create the global storage backend instance."""
-    global _storage
-    if _storage is None:
-        _storage = get_storage()
-    return _storage
+    global _storage_backend
+    desired_is_azure = bool(settings.azure_storage_connection_string)
+
+    # Initialize if needed
+    if _storage_backend is None:
+        _storage_backend = get_storage()
+    else:
+        # Reinitialize if settings changed since last creation
+        if desired_is_azure and not isinstance(_storage_backend, AzureBlobStorage):
+            _storage_backend = get_storage()
+        elif not desired_is_azure and not isinstance(
+            _storage_backend, LocalFilesystemStorage
+        ):
+            _storage_backend = get_storage()
+    return _storage_backend

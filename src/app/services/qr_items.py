@@ -16,7 +16,7 @@ from app.services.qr import (
     encode_render,
     render_qr,
 )
-from app.storage import get_storage_backend
+import app.storage as storage
 
 
 def build_config(payload: QRCreate) -> QRConfig:
@@ -41,7 +41,7 @@ def create_qr_item(
     current_user: User,
 ) -> QRItem:
     now = datetime.now(timezone.utc)
-    storage = get_storage_backend()
+    storage_backend = storage.get_storage_backend()
 
     # Generate QR code
     config = build_config(payload)
@@ -55,8 +55,8 @@ def create_qr_item(
     png_filename = f"{base_name}.png"
 
     # Save to storage (returns URL for blob storage, path for local)
-    svg_path = storage.save_file(render.svg_text, svg_filename, "image/svg+xml")
-    png_path = storage.save_file(render.png_bytes, png_filename, "image/png")
+    svg_path = storage_backend.save_file(render.svg_text, svg_filename, "image/svg+xml")
+    png_path = storage_backend.save_file(render.png_bytes, png_filename, "image/png")
 
     item = QRItem(
         user_id=current_user.id,
@@ -100,10 +100,10 @@ def get_owned_item(session: Session, current_user: User, item_id: int) -> QRItem
 
 def delete_qr_item(session: Session, current_user: User, item_id: int) -> None:
     item = get_owned_item(session, current_user, item_id)
-    storage = get_storage_backend()
-    storage.delete_file(item.svg_path)
+    storage_backend = storage.get_storage_backend()
+    storage_backend.delete_file(item.svg_path)
     if item.png_path:
-        storage.delete_file(item.png_path)
+        storage_backend.delete_file(item.png_path)
     session.delete(item)
     session.commit()
 
@@ -116,7 +116,7 @@ def download_path(
     Returns None for blob storage (download endpoint will redirect to blob URL).
     """
     item = get_owned_item(session, current_user, item_id)
-    storage = get_storage_backend()
+    storage_backend = storage.get_storage_backend()
 
     path_str = item.svg_path if format == "svg" else item.png_path
     if not path_str:
@@ -126,7 +126,7 @@ def download_path(
         )
 
     # For blob storage, return None (will use URL redirect)
-    file_path = storage.get_file_path(path_str)
+    file_path = storage_backend.get_file_path(path_str)
     if file_path is None:
         return None
 
