@@ -56,7 +56,7 @@ export const ProfilePanel = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card title="Profile" description="Update your name or password.">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <Input label="Full name" error={errors.full_name?.message} {...register('full_name')} />
