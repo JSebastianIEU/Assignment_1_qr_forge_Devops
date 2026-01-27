@@ -16,7 +16,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: '../app/static-frontend',
+    outDir: 'dist',
     sourcemap: true,
     assetsDir: 'frontend-assets',
   },

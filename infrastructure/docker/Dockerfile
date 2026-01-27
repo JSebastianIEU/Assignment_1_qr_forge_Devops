@@ -60,8 +60,8 @@ COPY ./src/app/ ./app/
 COPY ./src/alembic/ ./alembic/
 COPY ./src/alembic.ini .
 
-# Copy built frontend assets
-COPY --from=frontend-build /build/frontend/dist ./app/static-frontend
+# Copy built frontend assets (Vite outDir lives in src/frontend/dist)
+COPY --from=frontend-build /build/src/frontend/dist ./app/static-frontend
 
 # Ensure ownership
 RUN chown -R app:app /app /home/app || true
