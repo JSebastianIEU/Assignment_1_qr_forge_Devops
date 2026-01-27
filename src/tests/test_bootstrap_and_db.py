@@ -98,6 +98,7 @@ class TestDatabase:
         with engine.connect() as conn:
             # Should be able to execute a query
             from sqlalchemy import text
+
             result = conn.execute(text("SELECT 1"))
             assert result.fetchone() is not None
 
@@ -107,7 +108,9 @@ class TestDatabase:
         monkeypatch.setattr(settings, "database_url", test_db_url)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            monkeypatch.setattr(settings, "database_url", f"sqlite:///{tmp_dir}/test.db")
+            monkeypatch.setattr(
+                settings, "database_url", f"sqlite:///{tmp_dir}/test.db"
+            )
             engine = get_engine()
             assert engine is not None
 

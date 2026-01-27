@@ -117,9 +117,7 @@ def test_login_user_invalid_credentials(engine, prepare_database):
         signup_user(session, user_data)
 
         # Try with wrong password
-        login_data = UserLogin(
-            email="wrongpass@example.com", password="wrong_password"
-        )
+        login_data = UserLogin(email="wrongpass@example.com", password="wrong_password")
         with pytest.raises(HTTPException) as exc:
             login_user(session, login_data)
         assert exc.value.status_code == status.HTTP_401_UNAUTHORIZED
@@ -158,9 +156,7 @@ def test_update_profile_both_fields(engine, prepare_database):
         )
         user = signup_user(session, user_data)
 
-        update_data = UserUpdate(
-            full_name="Updated Name", password="newpass123"
-        )
+        update_data = UserUpdate(full_name="Updated Name", password="newpass123")
         updated = update_profile(session, user, update_data)
         assert updated.full_name == "Updated Name"
 

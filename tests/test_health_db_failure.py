@@ -8,7 +8,6 @@ and the health endpoint is verified to work in production.
 import pytest
 
 
-
 @pytest.mark.skip(reason="Health endpoint routing issue with TestClient")
 def test_health_returns_503_on_db_failure(monkeypatch):
     """When the DB engine cannot connect, /health returns 503."""

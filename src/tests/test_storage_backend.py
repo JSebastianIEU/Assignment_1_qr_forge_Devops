@@ -124,16 +124,14 @@ class TestAzureBlobStorage:
             )
 
     @pytest.mark.skipif(
-        True,
-        reason="Azure SDK not required for local storage backend tests"
+        True, reason="Azure SDK not required for local storage backend tests"
     )
     def test_azure_storage_initialization_with_connection_string(self):
         """Test AzureBlobStorage initializes with connection string."""
         pass
 
     @pytest.mark.skipif(
-        True,
-        reason="Azure SDK not required for local storage backend tests"
+        True, reason="Azure SDK not required for local storage backend tests"
     )
     def test_azure_storage_save_file(self):
         """Test AzureBlobStorage saves files to blob."""

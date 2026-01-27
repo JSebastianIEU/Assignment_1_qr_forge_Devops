@@ -14,9 +14,7 @@ class TestPrometheusConfiguration:
     def prometheus_config_path(self):
         """Return the path to prometheus.yml."""
         base_path = (
-            Path(__file__).parent.parent.parent
-            / "infrastructure"
-            / "monitoring"
+            Path(__file__).parent.parent.parent / "infrastructure" / "monitoring"
         )
         return base_path / "prometheus.yml"
 
@@ -78,11 +76,7 @@ class TestPrometheusConfiguration:
         """Test that metrics_path is configured in scrape configs."""
         scrape_configs = prometheus_config["scrape_configs"]
         qr_forge_job = next(
-            (
-                job
-                for job in scrape_configs
-                if job.get("job_name") == "qr_forge_app"
-            ),
+            (job for job in scrape_configs if job.get("job_name") == "qr_forge_app"),
             None,
         )
         assert qr_forge_job is not None, "qr_forge_app job not found"
@@ -97,9 +91,7 @@ class TestGrafanaDashboard:
     def grafana_dashboard_path(self):
         """Return the path to grafana-dashboard.json."""
         base_path = (
-            Path(__file__).parent.parent.parent
-            / "infrastructure"
-            / "monitoring"
+            Path(__file__).parent.parent.parent / "infrastructure" / "monitoring"
         )
         return base_path / "grafana-dashboard.json"
 
@@ -175,9 +167,7 @@ class TestMonitoringDockerCompose:
     def docker_compose_path(self):
         """Return the path to docker-compose.monitoring.yml."""
         base_path = (
-            Path(__file__).parent.parent.parent
-            / "infrastructure"
-            / "monitoring"
+            Path(__file__).parent.parent.parent / "infrastructure" / "monitoring"
         )
         return base_path / "docker-compose.monitoring.yml"
 
@@ -235,9 +225,7 @@ class TestMonitoringIntegration:
     def test_prometheus_and_grafana_configs_compatible(self):
         """Test that Prometheus and Grafana configs reference compatible metrics."""
         base_path = (
-            Path(__file__).parent.parent.parent
-            / "infrastructure"
-            / "monitoring"
+            Path(__file__).parent.parent.parent / "infrastructure" / "monitoring"
         )
 
         prometheus_path = base_path / "prometheus.yml"

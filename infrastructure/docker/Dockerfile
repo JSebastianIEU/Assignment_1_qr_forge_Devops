@@ -6,12 +6,14 @@
 FROM node:20-alpine AS frontend-build
 WORKDIR /build/frontend
 
-# Copy package files from the workspace root (context is project root)
-COPY ./src/frontend/package.json .
-COPY ./src/frontend/package-lock.json* .
+# Copy package manifests from the repo (frontend lives in src/frontend)
+COPY src/frontend/package.json src/frontend/package-lock.json* ./
 
-RUN npm install --frozen-lockfile
-COPY ./src/frontend/ .
+RUN npm ci
+
+# Copy the rest of the frontend sources
+COPY src/frontend/ .
+
 RUN npm run build
 
 ############################################################
