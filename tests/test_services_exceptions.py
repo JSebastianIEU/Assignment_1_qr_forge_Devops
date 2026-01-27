@@ -33,7 +33,8 @@ def test_get_owned_item_not_found_raises_http_exception():
         assert exc.value.status_code == 404
 
 
-def test_create_qr_item_propagates_asset_errors(monkeypatch, tmp_path: Path):
+def test_create_qr_item_with_storage_backend():
+    """Test that create_qr_item works with the new storage backend abstraction."""
     engine = _make_engine_and_create_tables()
     from sqlmodel import Session
 
@@ -54,18 +55,14 @@ def test_create_qr_item_propagates_asset_errors(monkeypatch, tmp_path: Path):
         border_radius=0,
     )
 
-    # Monkeypatch generate_qr_assets to raise an OSError (simulate disk full / IO)
-    def _boom(*args, **kwargs):
-        raise OSError("disk full")
-
-    monkeypatch.setattr(qr_items, "generate_qr_assets", _boom)
-
+    # Test that create_qr_item works without svg_dir/png_dir parameters
+    # (storage is handled by the abstraction layer)
     with Session(engine) as session:
-        with pytest.raises(OSError):
-            qr_items.create_qr_item(
-                session,
-                payload,
-                user,
-                svg_dir=tmp_path / "svgs",
-                png_dir=tmp_path / "pngs",
-            )
+        item = qr_items.create_qr_item(
+            session,
+            payload,
+            user,
+        )
+        assert item.title == "T"
+        assert item.svg_path is not None
+        assert item.png_path is not None

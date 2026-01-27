@@ -86,21 +86,26 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: src/frontend/package-lock.json
 
       - name: Install frontend dependencies
-        working-directory: ./frontend
+        working-directory: ./src/frontend
         run: npm ci
 
       - name: Build frontend
-        working-directory: ./frontend
+        working-directory: ./src/frontend
         run: npm run build
         env:
           VITE_API_URL: ${{ secrets.API_URL || '/api' }}
 
       - name: Run frontend tests
-        working-directory: ./frontend
+        working-directory: ./src/frontend
         run: npm test -- --run
+
+      - name: Run backend tests (pytest)
+        run: |
+          python -m pip install -r requirements.txt pytest
+          python -m pytest tests/ -v --tb=short
 
       - name: Validate required secrets
         run: |
@@ -112,9 +117,10 @@ jobs:
              [ -z "${{ secrets.ACR_IMAGE_NAME }}" ] || \
              [ -z "${{ secrets.SECRET_KEY }}" ] || \
              [ -z "${{ secrets.POSTGRES_URL }}" ] || \
-             [ -z "${{ secrets.DATABASE_URL }}" ]; then
+             [ -z "${{ secrets.DATABASE_URL }}" ] || \
+             [ -z "${{ secrets.AZURE_STORAGE_CONTAINER }}" ]; then
             echo "Error: One or more required secrets not set" >&2
-            echo "Required: AZURE_CREDENTIALS, ACR_NAME, ACR_PASSWORD, RESOURCE_GROUP, ACI_NAME, ACR_IMAGE_NAME, SECRET_KEY, POSTGRES_URL, DATABASE_URL" >&2
+            echo "Required: AZURE_CREDENTIALS, ACR_NAME, ACR_PASSWORD, RESOURCE_GROUP, ACI_NAME, ACR_IMAGE_NAME, SECRET_KEY, POSTGRES_URL, DATABASE_URL, AZURE_STORAGE_CONTAINER" >&2
             exit 1
           fi
           echo "✓ All required secrets validated"
@@ -129,7 +135,7 @@ jobs:
 
       - name: Build image locally
         run: |
-          docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.ACR_IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
+          docker build -f infrastructure/docker/Dockerfile -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.ACR_IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
           docker tag ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.ACR_IMAGE_NAME }}:${{ env.IMAGE_TAG }} ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.ACR_IMAGE_NAME }}:${{ env.IMAGE_TAG_LATEST }}
 
       - name: Push image to ACR
@@ -161,6 +167,8 @@ jobs:
               ALGORITHM=HS256 \
               POSTGRES_URL=${{ secrets.POSTGRES_URL }} \
               DATABASE_URL=${{ secrets.DATABASE_URL }} \
+              AZURE_STORAGE_CONNECTION_STRING=${{ secrets.AZURE_STORAGE_CONNECTION_STRING }} \
+              AZURE_STORAGE_CONTAINER=${{ secrets.AZURE_STORAGE_CONTAINER }} \
               QR_ASSETS_DIR=/home/app/data/qr_assets \
               QR_TEMP_DIR=/home/app/data/qr_temp \
               PYTHONUNBUFFERED=1 \
@@ -203,7 +211,7 @@ jobs:
 
       - name: Build HTTPS proxy image
         run: |
-          docker build -f Dockerfile.https-proxy -t ${{ secrets.ACR_NAME }}.azurecr.io/qrforge-https-proxy:latest .
+          docker build -f infrastructure/docker/Dockerfile.https-proxy -t ${{ secrets.ACR_NAME }}.azurecr.io/qrforge-https-proxy:latest .
 
       - name: Push proxy image to ACR
         run: |

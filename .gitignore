@@ -206,10 +206,105 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# Generated QR assets
+# ============================================================================
+# PROJECT-SPECIFIC
+# ============================================================================
+
+# Generated QR assets (local temporary files)
 generated_svgs/
 generated_pngs/
 app/generated_svgs/
 app/generated_pngs/
+src/app/generated_svgs/
+src/app/generated_pngs/
+
+# Local database files
 qr.db
+*.db
+*.sqlite
+*.sqlite3
+local_data.db
+
+# Temporary storage directories
+temp/
+tmp/
+.tmp/
+*.tmp
+
+# Asset files and cache
+.cache/
+__pycache__/
+
+# Logs (local development)
+logs/
+*.log
+local.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+.env.local
+.env.*.local
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+
+# IDE-specific files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.iml
+
+# Test artifacts (local runs)
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+.hypothesis/
+
+# Build/Distribution
+build/
+dist/
+*.egg-info/
+*.whl
+
+# Frontend (if exists)
+src/frontend/node_modules/
+src/frontend/dist/
+src/frontend/.next/
+src/frontend/out/
+
+# Azure-specific
+*.json
+!pyproject.toml
+!requirements.toml
+temp_*.json
+
+# Assignment/Documentation working files
+Assignment1/
+Assignment2/
+*.docx
+*.xlsx
+*.pptx
+
+# Temporary test files
+test_*.py
+conftest_backup.py
+
+# Docker/Container artifacts
+.dockerignore
+docker-compose.override.yml
+
+# SSH/Security keys (if accidentally added)
+*.pem
+*.key
+*.pub
+
+# Secrets (should use GitHub Secrets instead)
+.env.production
+.env.development
+secrets.txt
+credentials.json
 
