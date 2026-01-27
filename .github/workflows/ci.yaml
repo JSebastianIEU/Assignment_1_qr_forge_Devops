@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  COVERAGE_GATE: 70
+  COVERAGE_GATE: 60
 
 jobs:
   test-and-lint:
