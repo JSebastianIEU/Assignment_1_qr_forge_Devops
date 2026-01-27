@@ -289,10 +289,6 @@ Assignment2/
 *.xlsx
 *.pptx
 
-# Temporary test files
-test_*.py
-conftest_backup.py
-
 # Docker/Container artifacts
 .dockerignore
 docker-compose.override.yml
