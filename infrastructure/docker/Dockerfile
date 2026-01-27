@@ -4,17 +4,14 @@
 # Stage 1: Build React SPA
 ############################################################
 FROM node:20-alpine AS frontend-build
+WORKDIR /build
+
+# Copy entire frontend (lockfile included unless excluded by .dockerignore)
+COPY ./src/frontend ./frontend
 WORKDIR /build/frontend
 
-# Copy lockfiles first to leverage Docker layer caching
-COPY ./src/frontend/package.json ./package.json
-COPY ./src/frontend/package-lock.json ./package-lock.json
-
-RUN npm ci
-
-# Copy the rest of the frontend (node_modules/dist are excluded via .dockerignore)
-COPY ./src/frontend/ ./
-
+# Prefer reproducible install when lockfile is present; fall back to npm install
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 RUN npm run build
 
 ############################################################

@@ -16,16 +16,14 @@ Example:
     APPINSIGHTS_CONN="InstrumentationKey=...;IngestionEndpoint=..."
 """
 
-import os
-from datetime import datetime, timedelta
-from pathlib import Path
+from datetime import datetime
 
 import pytest
 from sqlmodel import Session, create_engine, select
 
 from app.config import settings
-from app.models import QRItem, User
-from app.services.auth import create_access_token, get_password_hash
+from app.models import User
+from app.services.auth import get_password_hash
 from app.storage import AzureBlobStorage, get_storage_backend
 
 
@@ -66,9 +64,7 @@ class TestAzureBlobStorageIntegration:
 
         try:
             # Save file
-            blob_url = azure_storage.save_file(
-                test_content, test_filename, "image/png"
-            )
+            blob_url = azure_storage.save_file(test_content, test_filename, "image/png")
             assert blob_url is not None
             assert isinstance(blob_url, str)
             assert test_filename in blob_url
@@ -82,13 +78,17 @@ class TestAzureBlobStorageIntegration:
 
     def test_azure_storage_save_svg(self, azure_storage):
         """Test saving SVG files to Azure Blob Storage."""
-        svg_content = """<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
-            <rect width="100" height="100" fill="white"/>
-        </svg>"""
+        svg_content = (
+            '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">'
+            "<rect width=\"100\" height=\"100\" fill=\"white\"/>"
+            "</svg>"
+        )
         test_filename = f"test_qr_{datetime.now().timestamp()}.svg"
 
         try:
-            blob_url = azure_storage.save_file(svg_content, test_filename, "image/svg+xml")
+            blob_url = azure_storage.save_file(
+                svg_content, test_filename, "image/svg+xml"
+            )
             assert blob_url is not None
             assert "svg" in blob_url.lower()
         except Exception as e:
@@ -257,10 +257,12 @@ class TestAzureEndToEnd:
 
         try:
             backend = get_storage_backend()
-            svg_content = """<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
-                <rect width="200" height="200" fill="white"/>
-                <rect x="10" y="10" width="30" height="30" fill="black"/>
-            </svg>"""
+            svg_content = (
+                '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">'
+                '<rect width="200" height="200" fill="white"/>'
+                '<rect x="10" y="10" width="30" height="30" fill="black"/>'
+                "</svg>"
+            )
 
             filename = f"qr_{datetime.now().isoformat()}.svg"
             url = backend.save_file(svg_content, filename, "image/svg+xml")
