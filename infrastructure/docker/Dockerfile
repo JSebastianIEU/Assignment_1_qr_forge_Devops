@@ -6,7 +6,7 @@
 FROM node:20-alpine AS frontend-build
 WORKDIR /build/frontend
 COPY src/frontend/package*.json ./
-RUN npm ci
+RUN npm install
 COPY src/frontend/ ./
 RUN npm run build
 

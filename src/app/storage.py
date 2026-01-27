@@ -70,13 +70,14 @@ class AzureBlobStorage(StorageBackend):
     def __init__(self, connection_string: str, container_name: str):
         try:
             from azure.storage.blob import BlobServiceClient, ContentSettings
+
             self.BlobServiceClient = BlobServiceClient
             self.ContentSettings = ContentSettings
         except ImportError:
             raise RuntimeError(
                 "azure-storage-blob package required for Azure Blob Storage. "
                 "Install with: pip install azure-storage-blob"
-                ) from None
+            ) from None
             client = self.BlobServiceClient.from_connection_string(
                 self.connection_string
             )
@@ -89,9 +90,7 @@ class AzureBlobStorage(StorageBackend):
 
     def save_file(self, content: str | bytes, filename: str, content_type: str) -> str:
         """Upload file to blob storage and return public URL."""
-        client = self.BlobServiceClient.from_connection_string(
-            self.connection_string
-        )
+        client = self.BlobServiceClient.from_connection_string(self.connection_string)
         blob_client = client.get_blob_client(
             container=self.container_name, blob=filename
         )
@@ -101,9 +100,7 @@ class AzureBlobStorage(StorageBackend):
 
         # Upload with content type
         content_settings = self.ContentSettings(content_type=content_type)
-        blob_client.upload_blob(
-            data, overwrite=True, content_settings=content_settings
-        )
+        blob_client.upload_blob(data, overwrite=True, content_settings=content_settings)
 
         # Return public URL
         return blob_client.url

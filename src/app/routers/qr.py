@@ -52,7 +52,6 @@ def create_qr(
     return QRItem(**item_dict)
 
 
-
 @router.get(
     "",
     response_model=List[QRItem],
@@ -74,7 +73,6 @@ def list_qr(
             item_dict['png_path'] = qr_items.path_to_url(item.png_path)
         converted_items.append(QRItem(**item_dict))
     return converted_items
-
 
 
 @router.get(

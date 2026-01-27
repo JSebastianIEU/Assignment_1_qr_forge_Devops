@@ -49,6 +49,7 @@ def create_qr_item(
 
     # Generate unique filenames
     import uuid
+
     base_name = str(uuid.uuid4())
     svg_filename = f"{base_name}.svg"
     png_filename = f"{base_name}.png"
@@ -121,7 +122,7 @@ def download_path(
     if not path_str:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"{format.upper()} not available"
+            detail=f"{format.upper()} not available",
         )
 
     # For blob storage, return None (will use URL redirect)
@@ -133,7 +134,7 @@ def download_path(
     if not file_path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"{format.upper()} file not found"
+            detail=f"{format.upper()} file not found",
         )
     return file_path
 
@@ -147,7 +148,7 @@ def get_download_url(
     if not path_str:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"{format.upper()} not available"
+            detail=f"{format.upper()} not available",
         )
     return path_str
 

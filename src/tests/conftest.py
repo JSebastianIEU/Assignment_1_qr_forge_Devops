@@ -58,6 +58,7 @@ def client(tmp_path: Path, monkeypatch, engine) -> TestClient:
         return LocalFilesystemStorage(base_dir=tmp_storage_dir)
 
     from app import storage as storage_module
+
     storage_module._storage_backend = None  # Reset singleton
     monkeypatch.setattr(
         storage_module, "get_storage_backend", override_get_storage, raising=False

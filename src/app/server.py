@@ -11,5 +11,4 @@ from fastapi import FastAPI
 # Import the top-level app instance defined in `app/main.py`.
 from app.main import app as application
 
-
 app: FastAPI = application
