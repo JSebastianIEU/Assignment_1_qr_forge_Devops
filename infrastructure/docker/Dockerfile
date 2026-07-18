@@ -35,7 +35,7 @@ RUN apt-get update \
 ############################################################
 FROM python:3.11-slim
 
-LABEL org.opencontainers.image.source="https://github.com/JSebastianIEU/Assignment_1_qr_forge_Devops"
+LABEL org.opencontainers.image.source="https://github.com/JSebastianIEU/qr_forge"
 LABEL org.opencontainers.image.description="QR Forge - FastAPI app for generating QR codes"
 LABEL org.opencontainers.image.version="1.0.0"
 
