@@ -1,5 +1,5 @@
 import { Download, Link2, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import type { QRItem } from '../../types/api.types'
 import { formatDate } from '../../utils/format'
@@ -37,6 +37,32 @@ const TruncatedText = ({ text, maxLength = 32 }: { text: string; maxLength?: num
             <div className="absolute top-full left-2 w-2 h-2 bg-slate-900 transform rotate-45" />
           </div>
         </div>
+      )}
+    </div>
+  )
+}
+
+const QRThumbnail = ({ path }: { path: string }) => {
+  const [failed, setFailed] = useState(false)
+  const src = path.startsWith('http') ? path : `${window.location.origin}${path}`
+
+  // `failed` is reset whenever the source changes so a thumbnail that broke once
+  // (asset still uploading, transient 404) can recover on the next render.
+  useEffect(() => {
+    setFailed(false)
+  }, [src])
+
+  return (
+    <div className="w-12 h-12 rounded border border-slate-200 bg-white p-1 flex items-center justify-center flex-shrink-0 overflow-hidden">
+      {failed ? (
+        <div className="w-full h-full rounded bg-slate-100" aria-label="QR preview unavailable" />
+      ) : (
+        <img
+          src={src}
+          alt="QR preview"
+          className="w-full h-full object-contain"
+          onError={() => setFailed(true)}
+        />
       )}
     </div>
   )
@@ -156,9 +182,7 @@ export const QRHistoryTable = ({ items = [], isLoading, onDelete, onDownload, on
             {items.map((item) => (
               <tr key={item.id} className="border-t border-slate-100">
                 <td className="px-4 py-3">
-                  <div className="w-12 h-12 rounded border border-slate-200 bg-white p-1 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    <img src={item.svg_path.startsWith('http') ? item.svg_path : `${window.location.origin}${item.svg_path}`} alt="QR preview" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22%3E%3Crect fill=%22%23f3f4f6%22 width=%2248%22 height=%2248%22/%3E%3C/svg%3E' }} />
-                  </div>
+                  <QRThumbnail path={item.svg_path} />
                 </td>
                 <td className="px-4 py-3 font-medium text-slate-900">
                   <TruncatedText text={item.title || 'Untitled'} maxLength={32} />
