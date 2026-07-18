@@ -307,3 +307,10 @@ docker-compose.override.yml
 secrets.txt
 credentials.json
 
+
+# Frontend build output copied into the backend image at build time
+src/app/static-frontend/
+
+# Test/build artifacts
+src/tests/results.xml
+src/frontend/tsconfig.app.tsbuildinfo
